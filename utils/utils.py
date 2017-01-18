@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from itertools import chain
 import re
 import sys
 
@@ -12,8 +13,6 @@ import models
 
 
 def load_corpus(path, path_val, path_test, preprocess):
-    lower_case=True
-    replace_digits=True
     prune_at=300000
     min_count = 5
 
@@ -28,24 +27,31 @@ def load_corpus(path, path_val, path_test, preprocess):
     else:
         sents_val = []
         sents_test = []
-    sents = sents + sents_val + sents_test
+    sents = chain(chain(sents, sents_val), sents_test)
 
     print "(1) Tokenizing ..."
-    sents = [s.split() for s in sents]
-    sents = [s for s in sents if len(s) != 0]
+    # sents = [s.split() for s in sents]
+    # sents = [s for s in sents if len(s) != 0]
+    sents = sents >> map(lambda s: s.split()) >> filter(lambda s: len(s) != 0)
     print "# of sentences: %d" % len(sents)
 
     if preprocess:
-        if lower_case:
-            print "(2) Converting words to lower case ..."
-            sents = [[w.lower() for w in s] for s in sents]
+        # print "(2) Converting words to lower case ..."
+        # sents = [[w.lower() for w in s] for s in sents]
 
+        # print "(3) Appending '<EOS>' tokens for each sentence ..."
+        # sents = [s + ["<EOS>"] for s in sents]
+
+        # print "(4) Replacing digits with '7' ..."
+        # sents = [[re.sub(r"\d", "7", w) for w in s] for s in sents]
+
+        print "(2) Converting words to lower case ..."
         print "(3) Appending '<EOS>' tokens for each sentence ..."
-        sents = [s + ["<EOS>"] for s in sents]
-
-        if replace_digits:
-            print "(4) Replacing digits with '7' ..."
-            sents = [[re.sub(r"\d", "7", w) for w in s] for s in sents]
+        print "(4) Replacing digits with '7' ..."
+        sents = (sents
+                    >> map(lambda s: [w.lower() for w in s])
+                    >> map(lambda s: s + ["<EOS>"])
+                    >> map(lambda s: [re.sub(r"\d", "7", w) for w in s]))
 
         print "(5) Constructing a temporal dictionary ..."
         dictionary = gensim.corpora.Dictionary(sents, prune_at=prune_at)
@@ -95,14 +101,14 @@ def load_sentences(path):
     """
     Note: we tokenize words with space splitting.
     """
-    sents = open(path).readlines()
-    sents = [s.strip().decode("utf-8") for s in sents]
-    return sents
+    sents = open(path).xreadlines()
+    return (s.strip().decode("utf-8") for s in sents)
 
 
 def replace_words_with_UNK(sents, vocab, UNK):
     identical = dict(zip(vocab, vocab))
-    return [[identical.get(w, UNK) for w in s] for s in sents]
+    # return [[identical.get(w, UNK) for w in s] for s in sents]
+    return sents >> map(lambda s: [identical.get(w, UNK) for w in s])
 
 
 def create_word_embeddings(vocab, word2vec, dim, scale):
