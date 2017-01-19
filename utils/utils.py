@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import gc
 from itertools import chain
 import re
 import sys
@@ -7,12 +8,34 @@ import sys
 from chainer import cuda, serializers, Variable
 import gensim
 import numpy as np
+from stream import *
 
 import config
 import models
 
 
-def load_corpus(path, path_val, path_test, preprocess):
+class StartGenerator(object):
+
+    def __init__(self, path):
+        self.path = path
+
+    def __iter__(self):
+        for x in open(self.path):
+            yield x
+
+
+class FakeGenerator(object):
+
+    def __init__(self, origin, f):
+        self.origin = origin
+        self.f = f
+
+    def __iter__(self):
+        for x in self.f(self.origin):
+            yield x
+
+
+def load_corpus(path, path_val, path_test, preprocess, max_length=35):
     prune_at=300000
     min_count = 5
 
@@ -27,31 +50,26 @@ def load_corpus(path, path_val, path_test, preprocess):
     else:
         sents_val = []
         sents_test = []
-    sents = chain(chain(sents, sents_val), sents_test)
+    sents = chain(chain(sents, sents_va), sents_test)
 
     print "(1) Tokenizing ..."
-    # sents = [s.split() for s in sents]
-    # sents = [s for s in sents if len(s) != 0]
-    sents = sents >> map(lambda s: s.split()) >> filter(lambda s: len(s) != 0)
-    print "# of sentences: %d" % len(sents)
+    sents = FakeGenerator(sents,
+            lambda sents_: sents_
+                >> map(lambda s: tokenize(s))
+                >> filter(lambda s: 0 < len(s) <= max_length))
 
     if preprocess:
-        # print "(2) Converting words to lower case ..."
-        # sents = [[w.lower() for w in s] for s in sents]
-
-        # print "(3) Appending '<EOS>' tokens for each sentence ..."
-        # sents = [s + ["<EOS>"] for s in sents]
-
-        # print "(4) Replacing digits with '7' ..."
-        # sents = [[re.sub(r"\d", "7", w) for w in s] for s in sents]
-
         print "(2) Converting words to lower case ..."
+        sents = FakeGenerator(sents,
+                lambda sents_: sents_ >> map(lambda s: [w.lower() for w in s]))
+
         print "(3) Appending '<EOS>' tokens for each sentence ..."
+        sents = FakeGenerator(sents,
+                lambda sents_: sents_ >> map(lambda s: s + ["<EOS>"]))
+
         print "(4) Replacing digits with '7' ..."
-        sents = (sents
-                    >> map(lambda s: [w.lower() for w in s])
-                    >> map(lambda s: s + ["<EOS>"])
-                    >> map(lambda s: [re.sub(r"\d", "7", w) for w in s]))
+        sents = FakeGenerator(sents,
+                lambda sents_: sents_ >> map(lambda s: [re.sub(r"\d", "7", w) for w in s]))
 
         print "(5) Constructing a temporal dictionary ..."
         dictionary = gensim.corpora.Dictionary(sents, prune_at=prune_at)
@@ -80,13 +98,15 @@ def load_corpus(path, path_val, path_test, preprocess):
 
     print "(8) Transforming words to IDs ..."
     sents = np.asarray([[vocab[w] for w in s] for s in sents])
+    gc.collect()
+    print "# of total sentences: %d" % len(sents)
 
     if not None in [path_val, path_test]:
         sents_train = sents[0:n_train]
         sents_val = sents[n_train:n_train+n_val]
         sents_test = sents[n_train+n_val:n_train+n_val+n_test]
     else:
-        n_eval = min(10000, len(sents) * 0.1)
+        n_eval = min(5000, len(sents) * 0.1)
         perm = np.random.RandomState(1234).permutation(len(sents))
         sents_train = sents[perm[0:-n_eval]]
         sents_val = sents[perm[-n_eval:-n_eval//2]]
@@ -101,14 +121,16 @@ def load_sentences(path):
     """
     Note: we tokenize words with space splitting.
     """
-    sents = open(path).xreadlines()
-    return (s.strip().decode("utf-8") for s in sents)
+    sents = StartGenerator(path)
+    sents = FakeGenerator(sents,
+            lambda sents_: sents_ >> map(lambda s: s.strip().decode("utf-8")))
+    return sents
 
 
 def replace_words_with_UNK(sents, vocab, UNK):
     identical = dict(zip(vocab, vocab))
-    # return [[identical.get(w, UNK) for w in s] for s in sents]
-    return sents >> map(lambda s: [identical.get(w, UNK) for w in s])
+    return FakeGenerator(sents,
+            lambda sents_: sents_ >> map(lambda s: [identical.get(w, "<UNK>") for w in s]))
 
 
 def create_word_embeddings(vocab, word2vec, dim, scale):
@@ -134,7 +156,7 @@ def load_word2vec(path, dim):
             if len(l[1:]) != dim:
                 print "dim %d(actual) != %d(expected), skipped line %d" % \
                         (len(l[1:]), dim, line_i+1)
-            word2vec[l[0]] = np.asarray(map(float, l[1:]))
+            word2vec[l[0]] = np.asarray([float(x) for x in l[1:]])
     return word2vec
 
 

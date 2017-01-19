@@ -22,6 +22,7 @@ import utils
 xp = cuda.cupy
 # xp = np
 
+MAX_LENGTH = 50
 
 def evaluate(model, sents, ivocab):
     train = False
@@ -75,7 +76,7 @@ def main(gpu,
     do_preprocess = True if do_preprocess > 0 else False
 
     max_epoch = 50
-    EVAL = 5000
+    EVAL = 50000
 
     model_name = config.hyperparams[experiment]["model"]
     word_dim = config.hyperparams[experiment]["word_dim"]
@@ -106,7 +107,8 @@ def main(gpu,
                     path=path_corpus,
                     path_val=path_corpus_val,
                     path_test=path_corpus_test,
-                    preprocess=do_preprocess)
+                    preprocess=do_preprocess,
+                    max_length=MAX_LENGTH)
 
     if path_word2vec is not None:
         word2vec = utils.load_word2vec(path_word2vec, word_dim)
