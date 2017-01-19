@@ -36,6 +36,9 @@ class FakeGenerator(object):
 
 
 def load_corpus(path, path_val, path_test, preprocess, max_length=35):
+    """
+    コーパスはあらかじめtokenizingだけはされていること
+    """
     prune_at=300000
     min_count = 5
 
@@ -55,7 +58,7 @@ def load_corpus(path, path_val, path_test, preprocess, max_length=35):
     print "(1) Tokenizing ..."
     sents = FakeGenerator(sents,
             lambda sents_: sents_
-                >> map(lambda s: tokenize(s))
+                >> map(lambda s: s.split())
                 >> filter(lambda s: 0 < len(s) <= max_length))
 
     if preprocess:
