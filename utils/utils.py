@@ -65,10 +65,7 @@ def load_corpus(path, path_val, path_test, preprocess, max_length=35):
         sents_test = []
     print len(list(sents))
     print len(list(sents))
-    sys.exit()
     sents = ChainGenerator(sents, sents_val, sents_test)
-    print len(list(sents))
-    print len(list(sents))
 
     print "(1) Tokenizing ..."
     sents = FakeGenerator(sents,
@@ -81,13 +78,13 @@ def load_corpus(path, path_val, path_test, preprocess, max_length=35):
         sents = FakeGenerator(sents,
                 lambda sents_: sents_ >> map(lambda s: [w.lower() for w in s]))
 
-        print "(3) Appending '<EOS>' tokens for each sentence ..."
-        sents = FakeGenerator(sents,
-                lambda sents_: sents_ >> map(lambda s: s + ["<EOS>"]))
-
-        print "(4) Replacing digits with '7' ..."
+        print "(3) Replacing digits with '7' ..."
         sents = FakeGenerator(sents,
                 lambda sents_: sents_ >> map(lambda s: [re.sub(r"\d", "7", w) for w in s]))
+
+        print "(4) Appending '<EOS>' tokens for each sentence ..."
+        sents = FakeGenerator(sents,
+                lambda sents_: sents_ >> map(lambda s: s + ["<EOS>"]))
 
         print "(5) Constructing a temporal dictionary ..."
         dictionary = gensim.corpora.Dictionary(sents, prune_at=prune_at)
