@@ -65,15 +65,10 @@ def evaluate(model, sents, ivocab):
     return loss_data, acc_data
 
 
-def main(gpu,
-        experiment,
+def main(experiment,
+        path_word2vec,
         path_corpus,
-        path_corpus_val,
-        path_corpus_test,
-        do_preprocess,
-        path_word2vec):
-
-    do_preprocess = True if do_preprocess > 0 else False
+        gpu):
 
     max_epoch = 50
     EVAL = 50000
@@ -86,10 +81,6 @@ def main(gpu,
     batch_size = config.hyperparams[experiment]["batch_size"]
     
     print "CORPUS: %s" % path_corpus
-    if not None in [path_corpus_val, path_corpus_test]:
-        print "CORPUS (validation): %s" % path_corpus_val
-        print "CORPUS (test): %s" % path_corpus_test
-    print "PREPROCESS: %s" % do_preprocess
     print "PRE-TRAINED WORD EMBEDDINGS: %s" % path_word2vec
     print "EXPERIMENT: %s" % experiment
     print "WORD DIM: %d" % word_dim
@@ -102,13 +93,8 @@ def main(gpu,
             "rnnlm.%s.%s" % (os.path.basename(path_corpus), experiment))
     print "SNAPSHOT: %s" % path_save_head
     
-    sents_train, sents_val, sents_test, vocab, ivocab = \
-            utils.load_corpus(
-                    path=path_corpus,
-                    path_val=path_corpus_val,
-                    path_test=path_corpus_test,
-                    preprocess=do_preprocess,
-                    max_length=MAX_LENGTH)
+    sents_train, sents_val, vocab, ivocab = \
+            utils.load_corpus(path=path_corpus, max_length=MAX_LENGTH)
 
     if path_word2vec is not None:
         word2vec = utils.load_word2vec(path_word2vec, word_dim)
@@ -192,12 +178,6 @@ def main(gpu,
                 print "[validation] epoch=%d, perplexity=%f, accuracy=%.2f%%" \
                         % (epoch, perp, acc_data*100)
 
-                print "Evaluating on the test sentences ..."
-                loss_data, acc_data = evaluate(model, sents_test, ivocab)
-                perp = math.exp(loss_data)
-                print "[test] epoch=%d, perplexity=%f, accuracy=%.2f%%" \
-                        % (epoch, perp, acc_data*100)
-
                 serializers.save_npz(path_save_head + ".iter_%d_epoch_%d.model" % (it, epoch), model)
                 utils.save_word2vec(path_save_head + ".iter_%d_epoch_%d.vectors.txt" % (it, epoch), utils.extract_word2vec(model, vocab))
                 print "Saved."
@@ -207,28 +187,19 @@ def main(gpu,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-g", "--gpu", help="gpu", default=0, type=int)
     parser.add_argument("-e", "--experiment", help="experiment", type=str)
-    parser.add_argument("-c", "--corpus", help="path to corpus", type=str)
-    parser.add_argument("-cv", "--corpus_val", help="path to validation corpus", type=str)
-    parser.add_argument("-ct", "--corpus_test", help="path to test corpus", type=str)
-    parser.add_argument("-p", "--preprocess", help="preprocessing", type=int)
     parser.add_argument("-w", "--word2vec", help="path to pre-trained word vectors", type=str, default=None)
+    parser.add_argument("-c", "--corpus", help="path to corpus", type=str)
+    parser.add_argument("-g", "--gpu", help="gpu", type=int, default=0)
     args = parser.parse_args()
 
-    gpu = args.gpu
     experiment = args.experiment
-    path_corpus = args.corpus
-    path_corpus_val = args.corpus_val
-    path_corpus_test = args.corpus_test
-    preprocess = args.preprocess
     path_word2vec = args.word2vec
+    path_corpus = args.corpus
+    gpu = args.gpu
 
-    main(gpu=gpu,
-        experiment=experiment,
+    main(experiment=experiment,
+        path_word2vec=path_word2vec,
         path_corpus=path_corpus,
-        path_corpus_val=path_corpus_val,
-        path_corpus_test=path_corpus_test,
-        do_preprocess=preprocess,
-        path_word2vec=path_word2vec)
+        gpu=gpu)
 

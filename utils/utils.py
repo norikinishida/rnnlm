@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import gc
-import re
 import sys
 
 from chainer import cuda, serializers, Variable
@@ -11,141 +9,40 @@ from stream import *
 
 import config
 import models
+from preprocess import StartGenerator, FakeGenerator
 
 
-class StartGenerator(object):
+def load_corpus(path_corpus, max_length):
+    n_val = 5000
 
-    def __init__(self, path):
-        self.path = path
+    assert os.path.exists(path_corpus + ".wordids")
+    assert os.path.exists(path_corpus + ".dictionary")
+    start_time = time.time()
 
-    def __iter__(self):
-        for x in open(self.path):
-            yield x
+    print "Loading the preprocessed corpus ..."
+    sents = StartGenerator(path_corpus + ".wordids")
+    sents = FakeGenerator(sents, lambda x: x >> map(lambda s: s.strip().decode("utf-8").split()))
+    sents = FakeGenerator(sents, lambda x: x >> map(lambda s: [int(w) for w in s]))
+    sents = np.asarray(list(sents))
+    perm = np.random.RandomState(1234).permutation(len(sents))
+    sents_train = sents[perm[0:-n_val]]
+    sents_val = sents[perm[-n_val:]]
 
+    print "Filtering sentences with words more than %d ..." % max_length
+    sents_train = np.asarray([s for s in sents_train if len(s) <= max_length])
+    sents_val = np.asarray([s for s in sents_val if len(s) <= max_length])
 
-class FakeGenerator(object):
-
-    def __init__(self, origin, f):
-        self.origin = origin
-        self.f = f
-
-    def __iter__(self):
-        for x in self.f(self.origin):
-            yield x
-
-
-class ChainGenerator(object):
-
-    def __init__(self, *iterables):
-        self.iterables = iterables
-
-    def __iter__(self):
-        for it in self.iterables:
-            for x in it:
-                yield x
-
-
-def load_corpus(path, path_val, path_test, preprocess, max_length=35):
-    """
-    コーパスはあらかじめtokenizingだけはされていること
-    """
-    prune_at=300000
-    min_count = 5
-
-    print "(0) Loading the training corpus ..."
-    sents = load_sentences(path=path)
-    if not None in [path_val, path_test]:
-        sents_val = load_sentences(path=path_val)
-        sents_test = load_sentences(path=path_test)
-        n_train = len(sents)
-        n_val = len(sents_val)
-        n_test = len(sents_test)
-    else:
-        sents_val = []
-        sents_test = []
-    print len(list(sents))
-    print len(list(sents))
-    sents = ChainGenerator(sents, sents_val, sents_test)
-
-    print "(1) Tokenizing ..."
-    sents = FakeGenerator(sents,
-            lambda sents_: sents_
-                >> map(lambda s: s.split())
-                >> filter(lambda s: 0 < len(s) <= max_length))
-
-    if preprocess:
-        print "(2) Converting words to lower case ..."
-        sents = FakeGenerator(sents,
-                lambda sents_: sents_ >> map(lambda s: [w.lower() for w in s]))
-
-        print "(3) Replacing digits with '7' ..."
-        sents = FakeGenerator(sents,
-                lambda sents_: sents_ >> map(lambda s: [re.sub(r"\d", "7", w) for w in s]))
-
-        print "(4) Appending '<EOS>' tokens for each sentence ..."
-        sents = FakeGenerator(sents,
-                lambda sents_: sents_ >> map(lambda s: s + ["<EOS>"]))
-
-        print "(5) Constructing a temporal dictionary ..."
-        dictionary = gensim.corpora.Dictionary(sents, prune_at=prune_at)
-        dictionary.filter_extremes(no_below=min_count, no_above=1.0, keep_n=prune_at)
-        print "Vocabulary size: %d" % len(dictionary.token2id)
-
-        print "(6) Replacing rare words with '<UNK>' ..."
-        sents = replace_words_with_UNK(sents, dictionary.token2id, "<UNK>")
-        n_unk = 0
-        n_total = 0
-        for s in sents:
-            for w in s:
-                if w == "<UNK>":
-                    n_unk += 1
-            n_total += len(s)
-        print "# of '<UNK>' tokens: %d (%d/%d = %.2f%%)" % \
-                (n_unk, n_unk, n_total, float(n_unk)/n_total*100)
-    else:
-        print "Skipped (2)-(6)."
-
-    print "(7) (Re)constructing a dictionary ..."
-    dictionary = gensim.corpora.Dictionary(sents, prune_at=None)
-    vocab = dictionary.token2id
-    ivocab = {w_id: w for w, w_id in vocab.items()}
-    print "Vocabulary size: %d" % len(vocab)
-
-    print "(8) Transforming words to IDs ..."
-    sents = np.asarray([[vocab[w] for w in s] for s in sents])
-    gc.collect()
-    print "# of total sentences: %d" % len(sents)
-
-    if not None in [path_val, path_test]:
-        sents_train = sents[0:n_train]
-        sents_val = sents[n_train:n_train+n_val]
-        sents_test = sents[n_train+n_val:n_train+n_val+n_test]
-    else:
-        n_eval = min(5000, len(sents) * 0.1)
-        perm = np.random.RandomState(1234).permutation(len(sents))
-        sents_train = sents[perm[0:-n_eval]]
-        sents_val = sents[perm[-n_eval:-n_eval//2]]
-        sents_test = sents[perm[-n_eval//2:]]
     print "# of training sentences: %d" % len(sents_train)
     print "# of validation sentences: %d" % len(sents_val)
-    print "# of test sentences: %d" % len(sents_test)
-    return sents_train, sents_val, sents_test, vocab, ivocab
+    
+    print "Loading the dictionary ..."
+    dictionary = gensim.corpora.Dictionary.load_from_text(path_corpus + ".dictionary")
+    vocab = dictionary.token2id
+    ivocab = {w_id:w for w, w_id in vocab.items()}
+    print "Vocabulary size: %d" % len(vocab)
 
-
-def load_sentences(path):
-    """
-    Note: we tokenize words with space splitting.
-    """
-    sents = StartGenerator(path)
-    sents = FakeGenerator(sents,
-            lambda sents_: sents_ >> map(lambda s: s.strip().decode("utf-8")))
-    return sents
-
-
-def replace_words_with_UNK(sents, vocab, UNK):
-    identical = dict(zip(vocab, vocab))
-    return FakeGenerator(sents,
-            lambda sents_: sents_ >> map(lambda s: [identical.get(w, "<UNK>") for w in s]))
+    print "Completed. %d [sec]" % (time.time() - start_time)
+    return sents_train, sents_val, vocab, ivocab
 
 
 def create_word_embeddings(vocab, word2vec, dim, scale):
