@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
+import time
 
 from chainer import cuda, serializers, Variable
 import gensim
