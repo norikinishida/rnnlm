@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import gc
-from itertools import chain
 import re
 import sys
 
@@ -35,6 +34,17 @@ class FakeGenerator(object):
             yield x
 
 
+class ChainGenerator(object):
+
+    def __init__(self, *iterables):
+        self.iterables = iterables
+
+    def __iter__(self):
+        for it in self.iterables:
+            for x in it:
+                yield x
+
+
 def load_corpus(path, path_val, path_test, preprocess, max_length=35):
     """
     コーパスはあらかじめtokenizingだけはされていること
@@ -53,7 +63,12 @@ def load_corpus(path, path_val, path_test, preprocess, max_length=35):
     else:
         sents_val = []
         sents_test = []
-    sents = chain(chain(sents, sents_va), sents_test)
+    print len(list(sents))
+    print len(list(sents))
+    sys.exit()
+    sents = ChainGenerator(sents, sents_val, sents_test)
+    print len(list(sents))
+    print len(list(sents))
 
     print "(1) Tokenizing ..."
     sents = FakeGenerator(sents,
