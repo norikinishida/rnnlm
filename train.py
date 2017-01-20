@@ -94,7 +94,7 @@ def main(experiment,
     print "SNAPSHOT: %s" % path_save_head
     
     sents_train, sents_val, vocab, ivocab = \
-            utils.load_corpus(path=path_corpus, max_length=MAX_LENGTH)
+            utils.load_corpus(path_corpus=path_corpus, max_length=MAX_LENGTH)
 
     if path_word2vec is not None:
         word2vec = utils.load_word2vec(path_word2vec, word_dim)
