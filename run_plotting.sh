@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 
 # PTB
-python plot.py \
-    -p /mnt/hdd/projects/rnnlm/log/rnnlm.ptb.train.txt.experiment_1.log
+# python plot.py \
+#     -p /path/to/rnnlm.ptb.txt.preprocessed.experiment_1.log
