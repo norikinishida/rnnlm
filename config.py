@@ -14,17 +14,9 @@ hyperparams = {
     "experiment_1": {
         "model": "lstm",
         "word_dim": 300,
-        "state_dim": 1024,
-        "grad_clip": 5.0,
-        "weight_decay": 4e-6,
-        "batch_size": 100,
-    },
-    "experiment_2": {
-        "model": "lstm",
-        "word_dim": 300,
         "state_dim": 512,
         "grad_clip": 5.0,
         "weight_decay": 4e-6,
-        "batch_size": 50,
+        "batch_size": 100,
     },
 }

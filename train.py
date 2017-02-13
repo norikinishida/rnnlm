@@ -59,7 +59,7 @@ def evaluate(model, sents, ivocab):
         print " ".join(words_ref)
 
         print "Generated:"
-        words_gen = [ivocab[w[0]] for w in ys]
+        words_gen = [words_ref[0]] + [ivocab[w[0]] for w in ys]
         print " ".join(words_gen)
 
     return loss_data, acc_data
