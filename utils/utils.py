@@ -70,6 +70,7 @@ def load_word2vec(path, dim):
             if len(l[1:]) != dim:
                 print "dim %d(actual) != %d(expected), skipped line %d" % \
                         (len(l[1:]), dim, line_i+1)
+                continue
             word2vec[l[0]] = np.asarray([float(x) for x in l[1:]])
     return word2vec
 
