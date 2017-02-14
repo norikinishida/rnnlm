@@ -71,7 +71,7 @@ def load_word2vec(path, dim):
                 print "dim %d(actual) != %d(expected), skipped line %d" % \
                         (len(l[1:]), dim, line_i+1)
                 continue
-            word2vec[l[0]] = np.asarray([float(x) for x in l[1:]])
+            word2vec[l[0].decode("utf-8")] = np.asarray([float(x) for x in l[1:]])
     return word2vec
 
 
