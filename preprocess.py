@@ -55,13 +55,12 @@ def load_sentences(path):
 
 sent_detector = nltk.data.load("tokenizers/punkt/english.pickle")
 def tokenize(s):
-    # words = []
-    # for s_i in sent_detector.tokenize(s):
-    #     words_i = word_tokenize(s_i)
-    #     words.extend(words_i)
-    # return words
-    return s.split()
-
+    # return s.split()
+    words = []
+    for s_i in sent_detector.tokenize(s):
+        words_i = word_tokenize(s_i)
+        words.extend(words_i)
+    return words
 
 
 def replace_words_with_UNK(sents, vocab, UNK):
