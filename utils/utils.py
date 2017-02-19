@@ -11,7 +11,7 @@ from stream import *
 
 import config
 import models
-from preprocess import StartGenerator, FakeGenerator
+from nlppreprocess.generators import StartGenerator, FakeGenerator
 
 
 def load_corpus(path_corpus, max_length):
