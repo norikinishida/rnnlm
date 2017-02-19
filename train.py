@@ -187,10 +187,10 @@ def main(experiment,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-e", "--experiment", help="experiment", type=str)
-    parser.add_argument("-w", "--word2vec", help="path to pre-trained word vectors", type=str, default=None)
-    parser.add_argument("-c", "--corpus", help="path to corpus", type=str)
-    parser.add_argument("-g", "--gpu", help="gpu", type=int, default=0)
+    parser.add_argument("--experiment", help="experiment", type=str, required=True)
+    parser.add_argument("--word2vec", help="path to pre-trained word vectors", type=str, default=None)
+    parser.add_argument("--corpus", help="path to corpus", type=str, required=True)
+    parser.add_argument("--gpu", help="gpu", type=int, default=0)
     args = parser.parse_args()
 
     experiment = args.experiment

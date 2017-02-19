@@ -152,8 +152,8 @@ def main(path_in, path_out):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input", help="path to input corpus", type=str)
-    parser.add_argument("-o", "--output", help="path to output corpus", type=str)
+    parser.add_argument("--input", help="path to input corpus", type=str, required=True)
+    parser.add_argument("--output", help="path to output corpus", type=str, required=True)
     args = parser.parse_args()
 
     path_in = args.input
