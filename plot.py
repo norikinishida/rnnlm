@@ -59,9 +59,9 @@ def main(path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--path", help="path to log file", type=str, required=True)
+    parser.add_argument("--log", help="path to log file", type=str, required=True)
     args = parser.parse_args()
 
-    path = args.path
+    path = args.log
 
     main(path=path)
