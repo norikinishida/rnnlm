@@ -94,9 +94,9 @@ def main(gpu, path_corpus, path_config, path_word2vec):
 
     if path_word2vec is not None:
         word2vec = utils.load_word2vec(path_word2vec, word_dim)
-        word_embeddings = utils.create_word_embeddings(vocab, word2vec, dim=word_dim, scale=0.001)
+        initialW = utils.create_word_embeddings(vocab, word2vec, dim=word_dim, scale=0.001)
     else:
-        word_embeddings = None
+        initialW = None
 
     cuda.get_device(gpu).use()
     if model_name == "rnn":
@@ -104,21 +104,21 @@ def main(gpu, path_corpus, path_config, path_word2vec):
                 vocab_size=len(vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
-                word_embeddings=word_embeddings,
+                initialW=initialW,
                 EOS_ID=vocab["<EOS>"])
     elif model_name == "lstm":
         model = models.LSTM(
                 vocab_size=len(vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
-                word_embeddings=word_embeddings,
+                initialW=initialW,
                 EOS_ID=vocab["<EOS>"])
     elif model_name == "gru":
         model = models.GRU(
                 vocab_size=len(vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
-                word_embeddings=word_embeddings,
+                initialW=initialW,
                 EOS_ID=vocab["<EOS>"])
     else:
         print "Unknown model name: %s" % model_name
