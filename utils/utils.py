@@ -9,7 +9,6 @@ import gensim
 import numpy as np
 from stream import *
 
-import config
 import models
 from nlppreprocess.generators import StartGenerator, FakeGenerator
 

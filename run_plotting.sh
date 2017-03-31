@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
 
-# PTB
 python plot.py \
-    --log /path/to/rnnlm.ptb.txt.preprocessed.experiment_1.log
+    --log /path/to/rnnlm.enwiki-latest-pages-articles.xml.corpus.preprocessed.experiment_1.log

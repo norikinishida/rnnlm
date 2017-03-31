@@ -14,13 +14,9 @@ import chainer.functions as F
 import numpy as np
 import pyprind
 
-import config
 import models
 import utils
 
-
-xp = cuda.cupy
-# xp = np
 
 MAX_LENGTH = 50
 
@@ -37,12 +33,12 @@ def evaluate(model, sents, ivocab):
         ys = model.forward(ts=xs, train=train)
 
         ys = F.concat(ys, axis=0)
-        ys = F.reshape(ys, (-1, vocab_size))
         ts = F.concat(xs, axis=0)
+        ys = F.reshape(ys, (-1, vocab_size))
         ts = F.reshape(ts, (-1,))
 
         loss += F.softmax_cross_entropy(ys, ts)
-        acc += F.accuracy(ys, ts, ignore_label=-1)
+        acc += F.acuracy(ys, ts, ignore_label=-1)
 
     loss_data = float(cuda.to_cpu(loss.data)) / n
     acc_data = float(cuda.to_cpu(acc.data)) / n
@@ -65,32 +61,32 @@ def evaluate(model, sents, ivocab):
     return loss_data, acc_data
 
 
-def main(experiment,
-        path_word2vec,
-        path_corpus,
-        gpu):
-
-    max_epoch = 50
+def main(gpu, path_corpus, path_config, path_word2vec):
+    MAX_EPOCH = 50
     EVAL = 50000
-
-    model_name = config.hyperparams[experiment]["model"]
-    word_dim = config.hyperparams[experiment]["word_dim"]
-    state_dim = config.hyperparams[experiment]["state_dim"]
-    grad_clip = config.hyperparams[experiment]["grad_clip"]
-    weight_decay = config.hyperparams[experiment]["weight_decay"]
-    batch_size = config.hyperparams[experiment]["batch_size"]
+    
+    config = utils.Config(path_config)
+    model_name = config.getstr("model")
+    word_dim = config.getint("word_dim") 
+    state_dim = config.getint("state_dim")
+    grad_clip = config.getfloat("grad_clip")
+    weight_decay = config.getfloat("weight_decay")
+    batch_size = config.getint("batch_size")
     
     print "CORPUS: %s" % path_corpus
+    print "CONFIG: %s" % path_config
     print "PRE-TRAINED WORD EMBEDDINGS: %s" % path_word2vec
-    print "EXPERIMENT: %s" % experiment
+    print "MODEL: %s" % model_name
     print "WORD DIM: %d" % word_dim
     print "STATE DIM: %d" % state_dim
     print "GRADIENT CLIPPING: %f" % grad_clip
     print "WEIGHT DECAY: %f" % weight_decay
     print "BATCH SIZE: %d" % batch_size
 
-    path_save_head = os.path.join(config.path_snapshot,
-            "rnnlm.%s.%s" % (os.path.basename(path_corpus), experiment))
+    path_save_head = os.path.join(config.getpath("snapshot"),
+            "rnnlm.%s.%s" % (
+                os.path.basename(path_corpus),
+                os.path.splitext(os.path.basename(path_config))[0]))
     print "SNAPSHOT: %s" % path_save_head
     
     sents_train, sents_val, vocab, ivocab = \
@@ -102,6 +98,7 @@ def main(experiment,
     else:
         word_embeddings = None
 
+    cuda.get_device(gpu).use()
     if model_name == "rnn":
         model = models.RNN(
                 vocab_size=len(vocab),
@@ -126,9 +123,7 @@ def main(experiment,
     else:
         print "Unknown model name: %s" % model_name
         sys.exit(-1)
-    if gpu >= 0:
-        cuda.get_device(gpu).use()
-        model.to_gpu(gpu)
+    model.to_gpu(gpu)
 
     opt = optimizers.SMORMS3()
     opt.setup(model)
@@ -138,7 +133,7 @@ def main(experiment,
     it = 0
     n_train = len(sents_train)
     vocab_size = model.vocab_size
-    for epoch in xrange(1, max_epoch+1):
+    for epoch in xrange(1, MAX_EPOCH+1):
         perm = np.random.permutation(n_train)
         for data_i in xrange(0, n_train, batch_size):
             if data_i + batch_size > n_train:
@@ -149,8 +144,8 @@ def main(experiment,
             ys = model.forward(ts=xs, train=True)
 
             ys = F.concat(ys, axis=0)
-            ys = F.reshape(ys, (-1, vocab_size)) # (TN, |V|)
             ts = F.concat(xs, axis=0)
+            ys = F.reshape(ys, (-1, vocab_size)) # (TN, |V|)
             ts = F.reshape(ts, (-1,)) # (TN,)
 
             loss = F.softmax_cross_entropy(ys, ts)
@@ -178,8 +173,8 @@ def main(experiment,
                 print "[validation] epoch=%d, perplexity=%f, accuracy=%.2f%%" \
                         % (epoch, perp, acc_data*100)
 
-                serializers.save_npz(path_save_head + ".iter_%d_epoch_%d.model" % (it, epoch), model)
-                utils.save_word2vec(path_save_head + ".iter_%d_epoch_%d.vectors.txt" % (it, epoch), utils.extract_word2vec(model, vocab))
+                serializers.save_npz(path_save_head + ".iter_%d.epoch_%d.model" % (it, epoch), model)
+                utils.save_word2vec(path_save_head + ".iter_%d.epoch_%d.vectors.txt" % (it, epoch), utils.extract_word2vec(model, vocab))
                 print "Saved."
 
     print "Done."
@@ -187,19 +182,20 @@ def main(experiment,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment", help="experiment", type=str, required=True)
-    parser.add_argument("--word2vec", help="path to pre-trained word vectors", type=str, default=None)
-    parser.add_argument("--corpus", help="path to corpus", type=str, required=True)
     parser.add_argument("--gpu", help="gpu", type=int, default=0)
+    parser.add_argument("--corpus", help="path to corpus", type=str, required=True)
+    parser.add_argument("--config", help="path to config", type=str, required=True)
+    parser.add_argument("--word2vec", help="path to pre-trained word vectors", type=str, default=None)
     args = parser.parse_args()
 
-    experiment = args.experiment
-    path_word2vec = args.word2vec
-    path_corpus = args.corpus
     gpu = args.gpu
+    path_corpus = args.corpus
+    path_config = args.config
+    path_word2vec = args.word2vec
 
-    main(experiment=experiment,
-        path_word2vec=path_word2vec,
+    main(
+        gpu=gpu,
         path_corpus=path_corpus,
-        gpu=gpu)
+        path_config=path_config,
+        path_word2vec=path_word2vec)
 

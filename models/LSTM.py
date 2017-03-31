@@ -7,23 +7,21 @@ import chainer.links as L
 import numpy as np
 
 
-xp = cuda.cupy
-
-
 class LSTM(chainer.Chain):
 
-    def __init__(self, vocab_size, word_dim, state_dim, word_embeddings, EOS_ID):
+    def __init__(self, vocab_size, word_dim, state_dim, initialW, EOS_ID):
         self.vocab_size = vocab_size
         self.word_dim = word_dim
         self.state_dim = state_dim
-        # self.word_embeddings = word_embeddings
+        # self.initialW = initialW
         self.EOS_ID = EOS_ID
         
-        if word_embeddings is not None:
-            assert word_embeddings.shape[0] == vocab_size
-            assert word_embeddings.shape[1] == word_dim
-            initialW = np.random.RandomState(1234).uniform(-0.01, 0.01, (vocab_size+1, word_dim))
-            initialW[0:-1, :] = word_embeddings
+        if initialW is not None:
+            assert initialW.shape[0] == vocab_size
+            assert initialW.shape[1] == word_dim
+            tmp = np.random.RandomState(1234).uniform(-0.01, 0.01, (vocab_size+1, word_dim))
+            tmp[0:-1, :] = initialW
+            initialW = tmp
         else:
             initialW = None
         self.vocab_size_in = self.vocab_size + 1
@@ -57,7 +55,7 @@ class LSTM(chainer.Chain):
             assert x_init.data.shape[0] == 1
             ys = self.forward_without_supervision(x_init, train=train)
         else:
-            print "Error: ts or x_init must not be None"
+            print "Error: ts or x_init must not be None."
             print "ts:" % ts
             print "x_init:", x_init
             return
@@ -68,10 +66,10 @@ class LSTM(chainer.Chain):
         N = ts[0].data.shape[0]
 
         state = {
-            "h": Variable(xp.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
-            "c": Variable(xp.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
+            "h": Variable(cuda.cupy.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
+            "c": Variable(cuda.cupy.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
             }
-        bos = Variable(xp.full((N, 1), self.BOS_ID, dtype=np.int32), volatile=not train)
+        bos = Variable(cuda.cupy.full((N, 1), self.BOS_ID, dtype=np.int32), volatile=not train)
         xs = [bos] + ts[:-1]
 
         ys = []
@@ -87,12 +85,12 @@ class LSTM(chainer.Chain):
         N = x_init.data.shape[0]
 
         state = {
-            "h": Variable(xp.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
-            "c": Variable(xp.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
+            "h": Variable(cuda.cupy.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
+            "c": Variable(cuda.cupy.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
             }
-        bos = Variable(xp.full((N, 1), self.BOS_ID, dtype=np.int32), volatile=not train)
+        bos = Variable(cuda.cupy.full((N, 1), self.BOS_ID, dtype=np.int32), volatile=not train)
             
-        # とりあえず最初のステップ. 出力は無視(x_initだったとする)
+        # First step. Ignore the first output.
         state = self.update_state(bos, state, train=train)
         # y = self.predict(s, train=train)
         
@@ -105,11 +103,10 @@ class LSTM(chainer.Chain):
             y = np.argmax(y, axis=1) # (N=1,)
             ys.append(y)
 
-            # 終了判定
             if y[0] == self.EOS_ID:
                 break
             else:
-                x = Variable(xp.asarray(y, dtype=np.int32), volatile=not train)
+                x = Variable(cuda.cupy.asarray(y, dtype=np.int32), volatile=not train)
 
         return ys
 
