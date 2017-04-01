@@ -129,6 +129,12 @@ def main(gpu, path_corpus, path_config, path_word2vec):
     opt.setup(model)
     opt.add_hook(chainer.optimizer.GradientClipping(grad_clip))
     opt.add_hook(chainer.optimizer.WeightDecay(weight_decay))
+
+    print "Evaluating on the validation sentences ..."
+    loss_data, acc_data = evaluate(model, sents_val, ivocab)
+    perp = math.exp(loss_data)
+    print "[validation] epoch=0, iter=0, perplexity=%f, accuracy=%.2f%%" \
+        % (perp, acc_data*100)
     
     it = 0
     n_train = len(sents_train)
@@ -169,11 +175,13 @@ def main(gpu, path_corpus, path_config, path_word2vec):
                 print "Evaluating on the validation sentences ..."
                 loss_data, acc_data = evaluate(model, sents_val, ivocab)
                 perp = math.exp(loss_data)
-                print "[validation] epoch=%d, perplexity=%f, accuracy=%.2f%%" \
-                        % (epoch, perp, acc_data*100)
+                print "[validation] epoch=%d, iter=%d, perplexity=%f, accuracy=%.2f%%" \
+                        % (epoch, it, perp, acc_data*100)
 
-                serializers.save_npz(path_save_head + ".iter_%d.epoch_%d.model" % (it, epoch), model)
-                utils.save_word2vec(path_save_head + ".iter_%d.epoch_%d.vectors.txt" % (it, epoch), utils.extract_word2vec(model, vocab))
+                serializers.save_npz(path_save_head + ".iter_%d.epoch_%d.model" % (it, epoch),
+                        model)
+                utils.save_word2vec(path_save_head + ".iter_%d.epoch_%d.vectors.txt" % (it, epoch),
+                        utils.extract_word2vec(model, vocab))
                 print "Saved."
 
     print "Done."
