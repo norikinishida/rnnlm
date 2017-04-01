@@ -4,13 +4,11 @@ import os
 import sys
 import time
 
+import numpy as np
 from chainer import cuda, serializers, Variable
 import gensim
-import numpy as np
-from stream import *
 
 import models
-from nlppreprocess.generators import StartGenerator, FakeGenerator
 
 
 def load_corpus(path_corpus, max_length):
