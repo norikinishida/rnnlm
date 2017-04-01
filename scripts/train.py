@@ -18,8 +18,6 @@ import models
 import utils
 
 
-MAX_LENGTH = 50
-
 def evaluate(model, sents, ivocab):
     train = False
     loss = 0.0
@@ -63,6 +61,7 @@ def evaluate(model, sents, ivocab):
 def main(gpu, path_corpus, path_config, path_word2vec):
     MAX_EPOCH = 50
     EVAL = 5000
+    MAX_LENGTH = 50
     
     config = utils.Config(path_config)
     model_name = config.getstr("model")
