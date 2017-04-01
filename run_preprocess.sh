@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
-INPUT=/mnt/hdd/dataset/Wikipedia/english/corpora/enwiki-latest-articles.xml.corpus
-OUTPUT=/mnt/hdd/projects/rnnlm/data/enwiki-latest-articles.xml.corpus.preprocessed
+INPUT=/mnt/hdd/dataset/Book-Corpus/books_large.merge.head_50000.txt
+OUTPUT=/mnt/hdd/projects/rnnlm/data/books_large.merge.head_50000.txt.preprocessed
 
 python nlppreprocess/preprocess.py \
     --input $INPUT \
