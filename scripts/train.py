@@ -71,21 +71,21 @@ def main(gpu, path_corpus, path_config, path_word2vec):
     weight_decay = config.getfloat("weight_decay")
     batch_size = config.getint("batch_size")
     
-    print "CORPUS: %s" % path_corpus
-    print "CONFIG: %s" % path_config
-    print "PRE-TRAINED WORD EMBEDDINGS: %s" % path_word2vec
-    print "MODEL: %s" % model_name
-    print "WORD DIM: %d" % word_dim
-    print "STATE DIM: %d" % state_dim
-    print "GRADIENT CLIPPING: %f" % grad_clip
-    print "WEIGHT DECAY: %f" % weight_decay
-    print "BATCH SIZE: %d" % batch_size
+    print "[info] CORPUS: %s" % path_corpus
+    print "[info] CONFIG: %s" % path_config
+    print "[info] PRE-TRAINED WORD EMBEDDINGS: %s" % path_word2vec
+    print "[info] MODEL: %s" % model_name
+    print "[info] WORD DIM: %d" % word_dim
+    print "[info] STATE DIM: %d" % state_dim
+    print "[info] GRADIENT CLIPPING: %f" % grad_clip
+    print "[info] WEIGHT DECAY: %f" % weight_decay
+    print "[info] BATCH SIZE: %d" % batch_size
 
     path_save_head = os.path.join(config.getpath("snapshot"),
             "rnnlm.%s.%s" % (
                 os.path.basename(path_corpus),
                 os.path.splitext(os.path.basename(path_config))[0]))
-    print "SNAPSHOT: %s" % path_save_head
+    print "[info] SNAPSHOT: %s" % path_save_head
     
     sents_train, sents_val, vocab, ivocab = \
             utils.load_corpus(path_corpus=path_corpus, max_length=MAX_LENGTH)
@@ -119,7 +119,7 @@ def main(gpu, path_corpus, path_config, path_word2vec):
                 initialW=initialW,
                 EOS_ID=vocab["<EOS>"])
     else:
-        print "Unknown model name: %s" % model_name
+        print "[info] Unknown model name: %s" % model_name
         sys.exit(-1)
     model.to_gpu(gpu)
 
@@ -128,7 +128,7 @@ def main(gpu, path_corpus, path_config, path_word2vec):
     opt.add_hook(chainer.optimizer.GradientClipping(grad_clip))
     opt.add_hook(chainer.optimizer.WeightDecay(weight_decay))
 
-    print "Evaluating on the validation sentences ..."
+    print "[info] Evaluating on the validation sentences ..."
     loss_data, acc_data = evaluate(model, sents_val, ivocab)
     perp = math.exp(loss_data)
     print "[validation] iter=0, epoch=0, perplexity=%f, accuracy=%.2f%%" \
@@ -170,7 +170,7 @@ def main(gpu, path_corpus, path_config, path_word2vec):
                         perp, acc_data*100)
 
             if it % EVAL == 0:
-                print "Evaluating on the validation sentences ..."
+                print "[info] Evaluating on the validation sentences ..."
                 loss_data, acc_data = evaluate(model, sents_val, ivocab)
                 perp = math.exp(loss_data)
                 print "[validation] iter=%d, epoch=%d, perplexity=%f, accuracy=%.2f%%" \
@@ -180,9 +180,9 @@ def main(gpu, path_corpus, path_config, path_word2vec):
                         model)
                 utils.save_word2vec(path_save_head + ".iter_%d.epoch_%d.vectors.txt" % (it, epoch),
                         utils.extract_word2vec(model, vocab))
-                print "Saved."
+                print "[info] Saved."
 
-    print "Done."
+    print "[info] Done."
 
 
 if __name__ == "__main__":

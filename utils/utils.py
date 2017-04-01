@@ -17,36 +17,36 @@ def load_corpus(path_corpus, max_length):
     start_time = time.time()
     
     # split
-    print "Loading the preprocessed corpus ..."
+    print "[info] Loading the preprocessed corpus ..."
     sents = open(path_corpus)
     sents = [s.strip().decode("utf-8").split() for s in sents]
     
     # construct a dictionary
-    print "Constructing a dictionary ..."
+    print "[info] Constructing a dictionary ..."
     dictionary = gensim.corpora.Dictionary(sents, prune_at=None)
     vocab = dictionary.token2id
     ivocab = {i:w for w,i in vocab.items()}
-    print "Vocabulary size: %d" % len(vocab)
+    print "[info] Vocabulary size: %d" % len(vocab)
     
     # transform words to IDs
-    print "Transforming words to IDs ..."
+    print "[info] Transforming words to IDs ..."
     sents = [[vocab[w] for w in s] for s in sents]
 
     # XXX: filter sentences
-    print "Filtering sentences with more than %d words ..." % max_length
+    print "[info] Filtering sentences with more than %d words ..." % max_length
     sents = [s for s in sents if len(s) <= max_length]
 
     # transform list to numpy.ndarray
-    print "Transforming list to numpy.ndarray"
+    print "[info] Transforming list to numpy.ndarray"
     sents = np.asarray(sents)
     
     perm = np.random.RandomState(1234).permutation(len(sents))
     sents_train = sents[perm[0:-N_VAL]]
     sents_val = sents[perm[-N_VAL:]]
-    print "# of training sentences: %d" % len(sents_train)
-    print "# of validation sentences: %d" % len(sents_val)
+    print "[info] # of training sentences: %d" % len(sents_train)
+    print "[info] # of validation sentences: %d" % len(sents_val)
 
-    print "Completed. %d [sec]" % (time.time() - start_time)
+    print "[info] Completed. %d [sec]" % (time.time() - start_time)
     return sents_train, sents_val, vocab, ivocab
 
 
@@ -56,7 +56,7 @@ def load_word2vec(path, dim):
         for line_i, line in enumerate(f):
             l = line.strip().split()
             if len(l[1:]) != dim:
-                print "dim %d(actual) != %d(expected), skipped line %d" % \
+                print "[info] dim %d(actual) != %d(expected), skipped line %d" % \
                         (len(l[1:]), dim, line_i+1)
                 continue
             word2vec[l[0].decode("utf-8")] = np.asarray([float(x) for x in l[1:]])
@@ -65,11 +65,11 @@ def load_word2vec(path, dim):
 
 def create_word_embeddings(vocab, word2vec, dim, scale):
     task_vocab = vocab.keys()
-    print "Vocabulary size (corpus): %d" % len(task_vocab)
+    print "[info] Vocabulary size (corpus): %d" % len(task_vocab)
     word2vec_vocab = word2vec.keys()
-    print "Vocabulary size (pre-trained): %d" % len(word2vec_vocab)
+    print "[info] Vocabulary size (pre-trained): %d" % len(word2vec_vocab)
     common_vocab = set(task_vocab) & set(word2vec_vocab)
-    print "Pre-trained words in the corpus: %d (%d/%d = %.2f%%)" \
+    print "[info] Pre-trained words in the corpus: %d (%d/%d = %.2f%%)" \
         % (len(common_vocab), len(common_vocab), len(task_vocab),
             float(len(common_vocab))/len(task_vocab)*100)
     W = np.random.RandomState(1234).uniform(-scale, scale, (len(task_vocab), dim)).astype(np.float32)
@@ -133,7 +133,7 @@ def load_model(path, path_config, vocab):
                 word_embeddings=None,
                 EOS_ID=vocab["<EOS>"])
     else:
-        print "Unkwown model name: %s" % model_name
+        print "[info] Unkwown model name: %s" % model_name
         sys.exit(-1)
     serializers.load_npz(path, model)
     return model
