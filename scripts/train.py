@@ -22,11 +22,11 @@ MAX_LENGTH = 50
 
 def evaluate(model, sents, ivocab):
     train = False
-    n = len(sents)
     loss = 0.0
     acc = 0.0
+    count = 0
     vocab_size = model.vocab_size
-    for data_i in pyprind.prog_bar(xrange(n)):
+    for data_i in pyprind.prog_bar(xrange(len(sents))):
         words = sents[data_i:data_i+1]
         xs = utils.make_batch(words, train=train, tail=False)
 
@@ -37,11 +37,12 @@ def evaluate(model, sents, ivocab):
         ys = F.reshape(ys, (-1, vocab_size))
         ts = F.reshape(ts, (-1,))
 
-        loss += F.softmax_cross_entropy(ys, ts)
-        acc += F.acuracy(ys, ts, ignore_label=-1)
+        loss += F.softmax_cross_entropy(ys, ts) * len(words[0])
+        acc += F.accuracy(ys, ts, ignore_label=-1) * len(words[0])
+        count += len(words[0])
 
-    loss_data = float(cuda.to_cpu(loss.data)) / n
-    acc_data = float(cuda.to_cpu(acc.data)) / n
+    loss_data = float(cuda.to_cpu(loss.data)) / count
+    acc_data = float(cuda.to_cpu(acc.data)) / count
 
 
     for data_i in np.random.randint(0, len(sents), 5):
@@ -50,20 +51,18 @@ def evaluate(model, sents, ivocab):
 
         ys = model.forward(x_init=xs[0], train=train)
 
-        print "Reference:"
         words_ref = [ivocab[w] for w in words[0]]
-        print " ".join(words_ref)
-
-        print "Generated:"
         words_gen = [words_ref[0]] + [ivocab[w[0]] for w in ys]
-        print " ".join(words_gen)
+
+        print "[Ref.]: %s" %  " ".join(words_ref)
+        print "[Gen.]: %s" %  " ".join(words_gen)
 
     return loss_data, acc_data
 
 
 def main(gpu, path_corpus, path_config, path_word2vec):
     MAX_EPOCH = 50
-    EVAL = 50000
+    EVAL = 5000
     
     config = utils.Config(path_config)
     model_name = config.getstr("model")
