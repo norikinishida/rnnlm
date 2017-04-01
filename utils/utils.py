@@ -28,16 +28,16 @@ def load_corpus(path_corpus, max_length):
     ivocab = {i:w for w,i in vocab.items()}
     print "Vocabulary size: %d" % len(vocab)
     
-    # transform to wordids
-    print "Transforming words to IDs..."
+    # transform words to IDs
+    print "Transforming words to IDs ..."
     sents = [[vocab[w] for w in s] for s in sents]
 
     # XXX: filter sentences
     print "Filtering sentences with words more than %d ..." % max_length
     sents = [s for s in sents if len(s) <= max_length]
 
-    # transform to numpy.ndarray
-    print "Transforming the list to numpy.ndarray"
+    # transform list to numpy.ndarray
+    print "Transforming list to numpy.ndarray"
     sents = np.asarray(sents)
     
     perm = np.random.RandomState(1234).permutation(len(sents))

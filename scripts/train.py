@@ -132,7 +132,7 @@ def main(gpu, path_corpus, path_config, path_word2vec):
     print "Evaluating on the validation sentences ..."
     loss_data, acc_data = evaluate(model, sents_val, ivocab)
     perp = math.exp(loss_data)
-    print "[validation] epoch=0, iter=0, perplexity=%f, accuracy=%.2f%%" \
+    print "[validation] iter=0, epoch=0, perplexity=%f, accuracy=%.2f%%" \
         % (perp, acc_data*100)
     
     it = 0
@@ -165,17 +165,17 @@ def main(gpu, path_corpus, path_config, path_word2vec):
             loss_data = float(cuda.to_cpu(loss.data))
             perp = math.exp(loss_data)
             acc_data = float(cuda.to_cpu(acc.data))
-            print "[training] epoch=%d (%d/%d=%.03f%%), iter=%d, perplexity=%f, accuracy=%.2f%%" \
-                    % (epoch, data_i+batch_size, n_train,
+            print "[training] iter=%d, epoch=%d (%d/%d=%.03f%%), perplexity=%f, accuracy=%.2f%%" \
+                    % (it, epoch, data_i+batch_size, n_train,
                         float(data_i+batch_size)/n_train*100,
-                        it, perp, acc_data*100)
+                        perp, acc_data*100)
 
             if it % EVAL == 0:
                 print "Evaluating on the validation sentences ..."
                 loss_data, acc_data = evaluate(model, sents_val, ivocab)
                 perp = math.exp(loss_data)
-                print "[validation] epoch=%d, iter=%d, perplexity=%f, accuracy=%.2f%%" \
-                        % (epoch, it, perp, acc_data*100)
+                print "[validation] iter=%d, epoch=%d, perplexity=%f, accuracy=%.2f%%" \
+                        % (it, epoch, perp, acc_data*100)
 
                 serializers.save_npz(path_save_head + ".iter_%d.epoch_%d.model" % (it, epoch),
                         model)
