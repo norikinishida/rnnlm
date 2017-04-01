@@ -33,7 +33,7 @@ def load_corpus(path_corpus, max_length):
     sents = [[vocab[w] for w in s] for s in sents]
 
     # XXX: filter sentences
-    print "Filtering sentences with words more than %d ..." % max_length
+    print "Filtering sentences with more than %d words ..." % max_length
     sents = [s for s in sents if len(s) <= max_length]
 
     # transform list to numpy.ndarray
