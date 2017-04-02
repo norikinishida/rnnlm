@@ -20,6 +20,9 @@ def load_corpus(path_corpus, max_length):
     print "[info] Loading the preprocessed corpus ..."
     sents = open(path_corpus)
     sents = [s.strip().decode("utf-8").split() for s in sents]
+
+    # All sentences must be end with the "<EOS>" token
+    sents = [s + ["<EOS>"] if s[-1] != "<EOS>" else s for s in sents]
     
     # construct a dictionary
     print "[info] Constructing a dictionary ..."
