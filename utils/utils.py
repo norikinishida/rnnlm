@@ -116,21 +116,21 @@ def load_model(path_model, path_config, vocab):
                 vocab_size=len(vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
-                word_embeddings=None,
+                initialW=None,
                 EOS_ID=vocab["<EOS>"])
     elif model_name == "lstm":
         model = models.LSTM(
                 vocab_size=len(vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
-                word_embeddings=None,
+                initialW=None,
                 EOS_ID=vocab["<EOS>"])
     elif model_name == "gru":
         model = models.GRU(
                 vocab_size=len(vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
-                word_embeddings=None,
+                initialW=None,
                 EOS_ID=vocab["<EOS>"])
     else:
         print "[error] Unkwown model name: %s" % model_name
