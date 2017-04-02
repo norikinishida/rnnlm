@@ -133,7 +133,7 @@ def load_model(path, path_config, vocab):
                 word_embeddings=None,
                 EOS_ID=vocab["<EOS>"])
     else:
-        print "[info] Unkwown model name: %s" % model_name
+        print "[error] Unkwown model name: %s" % model_name
         sys.exit(-1)
     serializers.load_npz(path, model)
     return model

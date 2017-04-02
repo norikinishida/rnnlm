@@ -119,7 +119,7 @@ def main(gpu, path_corpus, path_config, path_word2vec):
                 initialW=initialW,
                 EOS_ID=vocab["<EOS>"])
     else:
-        print "[info] Unknown model name: %s" % model_name
+        print "[error] Unknown model name: %s" % model_name
         sys.exit(-1)
     model.to_gpu(gpu)
 
