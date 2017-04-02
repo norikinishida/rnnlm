@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
 import sys
 import time
 
@@ -9,6 +8,7 @@ from chainer import cuda, serializers, Variable
 import gensim
 
 import models
+from Config import Config
 
 
 def load_corpus(path_corpus, max_length):
@@ -105,7 +105,7 @@ def make_batch(x, train, tail=True):
     return y
 
 
-def load_model(path, path_config, vocab):
+def load_model(path_model, path_config, vocab):
     config = Config(path_config)
     model_name = config.getstr("model")
     word_dim = config.getint("word_dim")
@@ -135,7 +135,7 @@ def load_model(path, path_config, vocab):
     else:
         print "[error] Unkwown model name: %s" % model_name
         sys.exit(-1)
-    serializers.load_npz(path, model)
+    serializers.load_npz(path_model, model)
     return model
 
 
