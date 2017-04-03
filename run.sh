@@ -6,6 +6,7 @@ CORPUS=/mnt/hdd/projects/rnnlm/data/books_large.merge.head_50000.txt.preprocesse
 python nlppreprocess/preprocess.py \
     --input $RAW \
     --output $CORPUS \
+    --corenlp 1 \
     --lowercase 1 \
     --replace_digits 1 \
     --append_eos 1 \
