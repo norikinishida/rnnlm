@@ -6,10 +6,10 @@ CORPUS=/mnt/hdd/projects/rnnlm/data/books_large.merge.head_50000.txt.preprocesse
 python nlppreprocess/preprocess.py \
     --input $RAW \
     --output $CORPUS \
-    --lowercase True \
-    --replace_digits True \
-    --append_eos True \
-    --replace_rare True \
+    --lowercase 1 \
+    --replace_digits 1 \
+    --append_eos 1 \
+    --replace_rare 1 \
     --prune_at 300000 \
     --min_count 5
 
