@@ -19,7 +19,7 @@ def load_corpus(path_corpus, max_length):
     # split
     print "[info] Loading the preprocessed corpus ..."
     sents = open(path_corpus)
-    sents = [s.strip().decode("utf-8").split() for s in sents]
+    sents = [s.decode("utf-8").strip().split() for s in sents]
 
     # All sentences must be end with the "<EOS>" token
     print "[info] Checking '<EOS>' tokens ..."
