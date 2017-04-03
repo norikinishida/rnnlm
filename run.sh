@@ -9,6 +9,7 @@ python nlppreprocess/preprocess.py \
     --lowercase True \
     --replace_digits True \
     --append_eos True \
+    --replace_rare True \
     --prune_at 300000 \
     --min_count 5
 
