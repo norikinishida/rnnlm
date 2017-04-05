@@ -1,7 +1,10 @@
 #!/usr/bin/env sh
 
-RAW=/mnt/hdd/dataset/Book-Corpus/books_large.merge.head_50000.txt
-CORPUS=/mnt/hdd/projects/rnnlm/data/books_large.merge.head_50000.txt.preprocessed
+RAW=/mnt/hdd/dataset/Wikipedia/english/corpora/enwiki-latest-pages-articles.xml.corpus
+CORPUS=/mnt/hdd/projects/rnnlm/data/wikipedia/enwiki-latest-pages-articles.xml.corpus.preprocessed
+
+# RAW=/mnt/hdd/dataset/Book-Corpus/books_large.merge.txt
+# CORPUS=/mnt/hdd/projects/rnnlm/data/bookcorpus/books_large.merge.txt.preprocessed
 
 TMP=./tmp.txt
 python nlppreprocess/lowercase.py \
@@ -36,9 +39,9 @@ python nlppreprocess/replace_rare_words.py \
     --input $TMP \
     --output $CORPUS \
     --prune_at 300000 \
-    --min_count 5
+    --min_count 40
 
 python scripts/train.py \
     --gpu 0 \
     --corpus $CORPUS \
-    --config ./config/experiment_2.ini
+    --config ./config/template.ini
