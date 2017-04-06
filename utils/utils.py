@@ -15,8 +15,19 @@ from Config import Config
 def load_corpus(path_corpus, max_length):
     N_VAL = 5000
 
+    if not os.path.exists(path_corpus + ".dictionary"):
+        print "[error] You should run nlppreprocess/create_dictionary.py before this script."
+        sys.exit(-1)
+
     start_time = time.time()
-    
+
+    # load a dictionary
+    print "[info] Loading a dictionary ..."
+    dictionary = gensim.corpora.Dictionary.load(path_corpus + ".dictionary")
+    vocab = dictionary.token2id
+    ivocab = {i:w for w,i in vocab.items()}
+    print "[info] Vocabulary size: %d" % len(vocab)
+
     # split
     print "[info] Loading the preprocessed corpus ..."
     sents = open(path_corpus)
@@ -24,19 +35,8 @@ def load_corpus(path_corpus, max_length):
 
     # All sentences must be end with the "<EOS>" token
     print "[info] Checking '<EOS>' tokens ..."
-    sents = [s + ["<EOS>"] if s[-1] != "<EOS>" else s for s in sents]
-    
-    # construct a dictionary
-    if not os.path.exists(path_corpus + ".dictionary"):
-        print "[info] Constructing a dictionary ..."
-        dictionary = gensim.corpora.Dictionary(sents, prune_at=None)
-        vocab = dictionary.token2id
-    else:
-        print "[info] Loading a dictionary ..."
-        dictionary = gensim.corpora.Dictionary.load(path_corpus + ".dictionary")
-        vocab = dictionary.token2id
-    ivocab = {i:w for w,i in vocab.items()}
-    print "[info] Vocabulary size: %d" % len(vocab)
+    for s in sents:
+        assert s[-1] == "<EOS>"
     
     # transform words to IDs
     print "[info] Transforming words to IDs ..."
