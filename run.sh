@@ -1,10 +1,14 @@
 #!/usr/bin/env sh
 
-RAW=/mnt/hdd/dataset/Wikipedia/english/corpora/enwiki-latest-pages-articles.xml.corpus
-CORPUS=/mnt/hdd/projects/rnnlm/data/wikipedia/enwiki-latest-pages-articles.xml.corpus.preprocessed
+RAW=/mnt/hdd/dataset/Book-Corpus/books_large.merge.head_50000.txt
+CORPUS_ALL=/mnt/hdd/projects/rnnlm/data/bookcorpus/books_large.merge.head_50000.txt.preprocessed
+CORPUS_TRAIN=/mnt/hdd/projects/rnnlm/data/bookcorpus/books_large.merge.head_50000.txt.preprocessed.train
+CORPUS_VAL=/mnt/hdd/projects/rnnlm/data/bookcorpus/books_large.merge.head_50000.txt.preprocessed.val
 
-# RAW=/mnt/hdd/dataset/Book-Corpus/books_large.merge.txt
-# CORPUS=/mnt/hdd/projects/rnnlm/data/bookcorpus/books_large.merge.txt.preprocessed
+RAW=/mnt/hdd/dataset/Book-Corpus/books_large.merge.txt
+CORPUS_ALL=/mnt/hdd/projects/rnnlm/data/bookcorpus/books_large.merge.txt.preprocessed
+CORPUS_TRAIN=/mnt/hdd/projects/rnnlm/data/bookcorpus/books_large.merge.txt.preprocessed.train
+CORPUS_VAL=/mnt/hdd/projects/rnnlm/data/bookcorpus/books_large.merge.txt.preprocessed.val
 
 TMP=./tmp.txt
 python nlppreprocess/lowercase.py \
@@ -37,14 +41,21 @@ python nlppreprocess/append_eos.py \
 
 python nlppreprocess/replace_rare_words.py \
     --input $TMP.append_eos \
-    --output $CORPUS \
+    --output $CORPUS_ALL \
     --prune_at 300000 \
-    --min_count 40
+    --min_count 5
+
+python nlppreprocess/split_corpus.py \
+    --all $CORPUS_ALL \
+    --train $CORPUS_TRAIN \
+    --val $CORPUS_VAL \
+    --size 5000
 
 python nlppreprocess/create_dictionary.py \
-    --corpus $CORPUS
+    --corpus $CORPUS_TRAIN
 
 python scripts/train.py \
     --gpu 0 \
-    --corpus $CORPUS \
+    --corpus_train $CORPUS_TRAIN \
+    --corpus_val $CORPUS_VAL \
     --config ./config/template.ini

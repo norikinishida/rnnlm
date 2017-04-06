@@ -6,58 +6,32 @@ import time
 
 import numpy as np
 from chainer import cuda, serializers, Variable
-import gensim
 
 import models
 from Config import Config
+from corpus_wrapper import CorpusWrapper
 
 
-def load_corpus(path_corpus, max_length):
-    N_VAL = 5000
-
-    if not os.path.exists(path_corpus + ".dictionary"):
+def load_corpus(path_corpus_train, path_corpus_val, max_length):
+    if not os.path.exists(path_corpus_train + ".dictionary"):
         print "[error] You should run nlppreprocess/create_dictionary.py before this script."
         sys.exit(-1)
 
     start_time = time.time()
 
-    # load a dictionary
-    print "[info] Loading a dictionary ..."
-    dictionary = gensim.corpora.Dictionary.load(path_corpus + ".dictionary")
-    vocab = dictionary.token2id
-    ivocab = {i:w for w,i in vocab.items()}
-    print "[info] Vocabulary size: %d" % len(vocab)
-
-    # split
-    print "[info] Loading the preprocessed corpus ..."
-    sents = open(path_corpus)
-    sents = [s.decode("utf-8").strip().split() for s in sents]
+    corpus_train = CorpusWrapper(path_corpus_train, vocab=None, max_length=max_length)
+    corpus_val = CorpusWrapper(path_corpus_val, vocab=corpus_train.vocab, max_length=max_length)
+    print "[info] Vocabulary size: %d" % len(corpus_train.vocab)
 
     # All sentences must be end with the "<EOS>" token
     print "[info] Checking '<EOS>' tokens ..."
-    for s in sents:
-        assert s[-1] == "<EOS>"
-    
-    # transform words to IDs
-    print "[info] Transforming words to IDs ..."
-    sents = [[vocab[w] for w in s] for s in sents]
-
-    # XXX: filter sentences
-    print "[info] Filtering sentences with more than %d words ..." % max_length
-    sents = [s for s in sents if len(s) <= max_length]
-
-    # transform list to numpy.ndarray
-    print "[info] Transforming list to numpy.ndarray"
-    sents = np.asarray(sents)
-    
-    perm = np.random.RandomState(1234).permutation(len(sents))
-    sents_train = sents[perm[0:-N_VAL]]
-    sents_val = sents[perm[-N_VAL:]]
-    print "[info] # of training sentences: %d" % len(sents_train)
-    print "[info] # of validation sentences: %d" % len(sents_val)
+    for s in corpus_train:
+        assert s[-1] == corpus_train.vocab["<EOS>"]
+    for s in corpus_val:
+        assert s[-1] == corpus_train.vocab["<EOS>"]
 
     print "[info] Completed. %d [sec]" % (time.time() - start_time)
-    return sents_train, sents_val, vocab, ivocab
+    return corpus_train, corpus_val
 
 
 def load_word2vec(path, dim):

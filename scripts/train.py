@@ -11,22 +11,22 @@ import sys
 import chainer
 from chainer import cuda, serializers, optimizers
 import chainer.functions as F
-import numpy as np
 import pyprind
 
 import models
 import utils
 
 
-def evaluate(model, sents, ivocab):
+def evaluate(model, corpus):
     train = False
     loss = 0.0
     acc = 0.0
     count = 0
     vocab_size = model.vocab_size
-    for data_i in pyprind.prog_bar(xrange(len(sents))):
-        words = sents[data_i:data_i+1]
-        xs = utils.make_batch(words, train=train, tail=False)
+    for data_i in pyprind.prog_bar(xrange(len(corpus))):
+        # batch_sents = sents[data_i:data_i+1]
+        batch_sents = corpus.next_batch(size=1)
+        xs = utils.make_batch(batch_sents, train=train, tail=False)
 
         ys = model.forward(ts=xs, train=train)
 
@@ -35,22 +35,21 @@ def evaluate(model, sents, ivocab):
         ys = F.reshape(ys, (-1, vocab_size))
         ts = F.reshape(ts, (-1,))
 
-        loss += F.softmax_cross_entropy(ys, ts) * len(words[0])
-        acc += F.accuracy(ys, ts, ignore_label=-1) * len(words[0])
-        count += len(words[0])
+        loss += F.softmax_cross_entropy(ys, ts) * len(batch_sents[0])
+        acc += F.accuracy(ys, ts, ignore_label=-1) * len(batch_sents[0])
+        count += len(batch_sents[0])
 
     loss_data = float(cuda.to_cpu(loss.data)) / count
     acc_data = float(cuda.to_cpu(acc.data)) / count
-
-
-    for data_i in np.random.randint(0, len(sents), 5):
-        words = sents[data_i:data_i+1]
-        xs = utils.make_batch(words, train=train, tail=False)
+    
+    for i in xrange(5):
+        batch_sents = corpus.random_sample()
+        xs = utils.make_batch(batch_sents, train=train, tail=False)
 
         ys = model.forward(x_init=xs[0], train=train)
 
-        words_ref = [ivocab[w] for w in words[0]]
-        words_gen = [words_ref[0]] + [ivocab[w[0]] for w in ys]
+        words_ref = [corpus.ivocab[w] for w in batch_sents[0]]
+        words_gen = [words_ref[0]] + [corpus.ivocab[w[0]] for w in ys]
 
         print "[check] <Ref.> %s" %  " ".join(words_ref)
         print "[check] <Gen.> %s" %  " ".join(words_gen)
@@ -58,7 +57,7 @@ def evaluate(model, sents, ivocab):
     return loss_data, acc_data
 
 
-def main(gpu, path_corpus, path_config, path_word2vec):
+def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     MAX_EPOCH = 50
     EVAL = 5000
     MAX_LENGTH = 50
@@ -71,7 +70,8 @@ def main(gpu, path_corpus, path_config, path_word2vec):
     weight_decay = config.getfloat("weight_decay")
     batch_size = config.getint("batch_size")
     
-    print "[info] CORPUS: %s" % path_corpus
+    print "[info] TRAINING CORPUS: %s" % path_corpus_train
+    print "[info] VALIDATION CORPUS: %s" % path_corpus_val
     print "[info] CONFIG: %s" % path_config
     print "[info] PRE-TRAINED WORD EMBEDDINGS: %s" % path_word2vec
     print "[info] MODEL: %s" % model_name
@@ -82,42 +82,45 @@ def main(gpu, path_corpus, path_config, path_word2vec):
     print "[info] BATCH SIZE: %d" % batch_size
 
     path_save_head = os.path.join(config.getpath("snapshot"),
-            "rnnlm.%s.%s" % (
-                os.path.basename(path_corpus),
+            "rnnlm.%s.%s.%s" % (
+                os.path.basename(path_corpus_train),
+                os.path.basename(path_corpus_val),
                 os.path.splitext(os.path.basename(path_config))[0]))
     print "[info] SNAPSHOT: %s" % path_save_head
-    
-    sents_train, sents_val, vocab, ivocab = \
-            utils.load_corpus(path_corpus=path_corpus, max_length=MAX_LENGTH)
+   
+    corpus_train, corpus_val = utils.load_corpus(
+            path_corpus_train=path_corpus_train, 
+            path_corpus_val=path_corpus_val,
+            max_length=MAX_LENGTH)
 
     if path_word2vec is not None:
         word2vec = utils.load_word2vec(path_word2vec, word_dim)
-        initialW = utils.create_word_embeddings(vocab, word2vec, dim=word_dim, scale=0.001)
+        initialW = utils.create_word_embeddings(corpus_train.vocab, word2vec, dim=word_dim, scale=0.001)
     else:
         initialW = None
 
     cuda.get_device(gpu).use()
     if model_name == "rnn":
         model = models.RNN(
-                vocab_size=len(vocab),
+                vocab_size=len(corpus_train.vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
                 initialW=initialW,
-                EOS_ID=vocab["<EOS>"])
+                EOS_ID=corpus_train.vocab["<EOS>"])
     elif model_name == "lstm":
         model = models.LSTM(
-                vocab_size=len(vocab),
+                vocab_size=len(corpus_train.vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
                 initialW=initialW,
-                EOS_ID=vocab["<EOS>"])
+                EOS_ID=corpus_train.vocab["<EOS>"])
     elif model_name == "gru":
         model = models.GRU(
-                vocab_size=len(vocab),
+                vocab_size=len(corpus_train.vocab),
                 word_dim=word_dim,
                 state_dim=state_dim,
                 initialW=initialW,
-                EOS_ID=vocab["<EOS>"])
+                EOS_ID=corpus_train.vocab["<EOS>"])
     else:
         print "[error] Unknown model name: %s" % model_name
         sys.exit(-1)
@@ -129,21 +132,21 @@ def main(gpu, path_corpus, path_config, path_word2vec):
     opt.add_hook(chainer.optimizer.WeightDecay(weight_decay))
 
     print "[info] Evaluating on the validation sentences ..."
-    loss_data, acc_data = evaluate(model, sents_val, ivocab)
+    loss_data, acc_data = evaluate(model, corpus_val)
     perp = math.exp(loss_data)
     print "[validation] iter=0, epoch=0, perplexity=%f, accuracy=%.2f%%" \
         % (perp, acc_data*100)
     
     it = 0
-    n_train = len(sents_train)
+    n_train = len(corpus_train)
     vocab_size = model.vocab_size
     for epoch in xrange(1, MAX_EPOCH+1):
-        perm = np.random.permutation(n_train)
         for data_i in xrange(0, n_train, batch_size):
             if data_i + batch_size > n_train:
                 break
-            words = sents_train[perm[data_i:data_i+batch_size]]
-            xs = utils.make_batch(words, train=True, tail=False)
+            # batch_sents = sents_train[perm[data_i:data_i+batch_size]]
+            batch_sents = corpus_train.next_batch(size=batch_size)
+            xs = utils.make_batch(batch_sents, train=True, tail=False)
 
             ys = model.forward(ts=xs, train=True)
 
@@ -171,7 +174,7 @@ def main(gpu, path_corpus, path_config, path_word2vec):
 
             if it % EVAL == 0:
                 print "[info] Evaluating on the validation sentences ..."
-                loss_data, acc_data = evaluate(model, sents_val, ivocab)
+                loss_data, acc_data = evaluate(model, corpus_val)
                 perp = math.exp(loss_data)
                 print "[validation] iter=%d, epoch=%d, perplexity=%f, accuracy=%.2f%%" \
                         % (it, epoch, perp, acc_data*100)
@@ -179,7 +182,7 @@ def main(gpu, path_corpus, path_config, path_word2vec):
                 serializers.save_npz(path_save_head + ".iter_%d.epoch_%d.model" % (it, epoch),
                         model)
                 utils.save_word2vec(path_save_head + ".iter_%d.epoch_%d.vectors.txt" % (it, epoch),
-                        utils.extract_word2vec(model, vocab))
+                        utils.extract_word2vec(model, corpus_train.vocab))
                 print "[info] Saved."
 
     print "[info] Done."
@@ -188,19 +191,22 @@ def main(gpu, path_corpus, path_config, path_word2vec):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu", help="gpu", type=int, default=0)
-    parser.add_argument("--corpus", help="path to corpus", type=str, required=True)
+    parser.add_argument("--corpus_train", help="path to training corpus", type=str, required=True)
+    parser.add_argument("--corpus_val", help="path to validation corpus", type=str, required=True)
     parser.add_argument("--config", help="path to config", type=str, required=True)
     parser.add_argument("--word2vec", help="path to pre-trained word vectors", type=str, default=None)
     args = parser.parse_args()
 
     gpu = args.gpu
-    path_corpus = args.corpus
+    path_corpus_train = args.corpus_train
+    path_corpus_val = args.corpus_val
     path_config = args.config
     path_word2vec = args.word2vec
 
     main(
         gpu=gpu,
-        path_corpus=path_corpus,
+        path_corpus_train=path_corpus_train,
+        path_corpus_val=path_corpus_val,
         path_config=path_config,
         path_word2vec=path_word2vec)
 
