@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import time
 
@@ -26,9 +27,14 @@ def load_corpus(path_corpus, max_length):
     sents = [s + ["<EOS>"] if s[-1] != "<EOS>" else s for s in sents]
     
     # construct a dictionary
-    print "[info] Constructing a dictionary ..."
-    dictionary = gensim.corpora.Dictionary(sents, prune_at=None)
-    vocab = dictionary.token2id
+    if not os.path.exists(path_corpus + ".dictionary"):
+        print "[info] Constructing a dictionary ..."
+        dictionary = gensim.corpora.Dictionary(sents, prune_at=None)
+        vocab = dictionary.token2id
+    else:
+        print "[info] Loading a dictionary ..."
+        dictionary = gensim.corpora.Dictionary.load(path_corpus + ".dictionary")
+        vocab = dictionary.token2id
     ivocab = {i:w for w,i in vocab.items()}
     print "[info] Vocabulary size: %d" % len(vocab)
     
