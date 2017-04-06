@@ -82,9 +82,8 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     print "[info] BATCH SIZE: %d" % batch_size
 
     path_save_head = os.path.join(config.getpath("snapshot"),
-            "rnnlm.%s.%s.%s" % (
+            "rnnlm.%s.%s" % (
                 os.path.basename(path_corpus_train),
-                os.path.basename(path_corpus_val),
                 os.path.splitext(os.path.basename(path_config))[0]))
     print "[info] SNAPSHOT: %s" % path_save_head
    
