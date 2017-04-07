@@ -25,7 +25,8 @@ def evaluate(model, corpus):
     vocab_size = model.vocab_size
     for data_i in pyprind.prog_bar(xrange(len(corpus))):
         # batch_sents = sents[data_i:data_i+1]
-        batch_sents = corpus.next_batch(size=1)
+        batch_sents = corpus.next_sample()
+        batch_sents = [batch_sents]
         xs = utils.make_batch(batch_sents, train=train, tail=False)
 
         ys = model.forward(ts=xs, train=train)
