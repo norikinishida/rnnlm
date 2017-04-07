@@ -88,10 +88,8 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
                 os.path.splitext(os.path.basename(path_config))[0]))
     print "[info] SNAPSHOT: %s" % path_save_head
    
-    corpus_train, corpus_val = utils.load_corpus(
-            path_corpus_train=path_corpus_train, 
-            path_corpus_val=path_corpus_val,
-            max_length=MAX_LENGTH)
+    corpus_train = utils.load_corpus(path_corpus_train, vocab=None, max_length=MAX_LENGTH)
+    corpus_val = utils.load_corpus(path_corpus_val, vocab=corpus_train.vocab, max_length=MAX_LENGTH)
 
     if path_word2vec is not None:
         word2vec = utils.load_word2vec(path_word2vec, word_dim)
@@ -131,11 +129,11 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     opt.add_hook(chainer.optimizer.GradientClipping(grad_clip))
     opt.add_hook(chainer.optimizer.WeightDecay(weight_decay))
 
-    print "[info] Evaluating on the validation sentences ..."
-    loss_data, acc_data = evaluate(model, corpus_val)
-    perp = math.exp(loss_data)
-    print "[validation] iter=0, epoch=0, perplexity=%f, accuracy=%.2f%%" \
-        % (perp, acc_data*100)
+    # print "[info] Evaluating on the validation sentences ..."
+    # loss_data, acc_data = evaluate(model, corpus_val)
+    # perp = math.exp(loss_data)
+    # print "[validation] iter=0, epoch=0, perplexity=%f, accuracy=%.2f%%" \
+    #     % (perp, acc_data*100)
     
     it = 0
     n_train = len(corpus_train)

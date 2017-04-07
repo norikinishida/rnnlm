@@ -12,26 +12,23 @@ from Config import Config
 from corpus_wrapper import CorpusWrapper
 
 
-def load_corpus(path_corpus_train, path_corpus_val, max_length):
-    if not os.path.exists(path_corpus_train + ".dictionary"):
-        print "[error] You should run nlppreprocess/create_dictionary.py before this script."
-        sys.exit(-1)
+def load_corpus(path_corpus, vocab, max_length):
+    if vocab is None:
+        if not os.path.exists(path_corpus + ".dictionary"):
+            print "[error] You should run nlppreprocess/create_dictionary.py before this script."
+            sys.exit(-1)
 
     start_time = time.time()
 
-    corpus_train = CorpusWrapper(path_corpus_train, vocab=None, max_length=max_length)
-    corpus_val = CorpusWrapper(path_corpus_val, vocab=corpus_train.vocab, max_length=max_length)
-    print "[info] Vocabulary size: %d" % len(corpus_train.vocab)
+    corpus = CorpusWrapper(path_corpus, vocab=vocab, max_length=max_length)
+    print "[info] Vocabulary size: %d" % len(corpus.vocab)
 
-    # All sentences must be end with the "<EOS>" token
     print "[info] Checking '<EOS>' tokens ..."
-    for s in corpus_train:
-        assert s[-1] == corpus_train.vocab["<EOS>"]
-    for s in corpus_val:
-        assert s[-1] == corpus_train.vocab["<EOS>"]
+    for s in corpus:
+        assert s[-1] == corpus.vocab["<EOS>"]
 
     print "[info] Completed. %d [sec]" % (time.time() - start_time)
-    return corpus_train, corpus_val
+    return corpus
 
 
 def load_word2vec(path, dim):
