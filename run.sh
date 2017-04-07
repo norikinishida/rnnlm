@@ -37,15 +37,15 @@ python nlppreprocess/replace_digits.py \
     --input $TMP.tokenize \
     --output $TMP.replace_digits
 
-python nlppreprocess/append_eos.py \
-    --input $TMP.replace_digits \
-    --output $TMP.append_eos
-
 python nlppreprocess/replace_rare_words.py \
-    --input $TMP.append_eos \
-    --output $CORPUS_ALL \
+    --input $TMP.replace_digits \
+    --output $TMP.replace_rare_words \
     --prune_at 300000 \
     --min_count 5
+
+python nlppreprocess/append_eos.py \
+    --input $TMP.replace_rare_words \
+    --output $CORPUS_ALL
 
 python nlppreprocess/split_corpus.py \
     --all $CORPUS_ALL \
