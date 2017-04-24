@@ -44,12 +44,12 @@ def evaluate(model, corpus):
     acc_data = float(cuda.to_cpu(acc.data)) / count
     
     for i in xrange(5):
-        batch_sents = corpus.random_sample()
-        xs = utils.make_batch(batch_sents, train=train, tail=False)
+        s = corpus.random_sample()
+        xs = utils.make_batch([s], train=train, tail=False)
 
         ys = model.forward(x_init=xs[0], train=train)
 
-        words_ref = [corpus.ivocab[w] for w in batch_sents[0]]
+        words_ref = [corpus.ivocab[w] for w in s]
         words_gen = [words_ref[0]] + [corpus.ivocab[w[0]] for w in ys]
 
         print "[check] <Ref.> %s" %  " ".join(words_ref)
