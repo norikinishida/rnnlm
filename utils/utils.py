@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
 import sys
 import time
 
@@ -9,18 +8,13 @@ from chainer import cuda, serializers, Variable
 
 import models
 from Config import Config
-from corpus_wrapper import CorpusWrapper
+import corpus_wrapper
 
 
 def load_corpus(path_corpus, vocab, max_length):
-    if vocab is None:
-        if not os.path.exists(path_corpus + ".dictionary"):
-            print "[error] You should run nlppreprocess/create_dictionary.py before this script."
-            sys.exit(-1)
-
     start_time = time.time()
 
-    corpus = CorpusWrapper(path_corpus, vocab=vocab, max_length=max_length)
+    corpus = corpus_wrapper.CorpusWrapper(path_corpus, vocab=vocab, max_length=max_length)
     print "[info] Vocabulary size: %d" % len(corpus.vocab)
 
     print "[info] Checking '<EOS>' tokens ..."

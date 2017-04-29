@@ -88,7 +88,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
                 os.path.splitext(os.path.basename(path_config))[0]))
     print "[info] SNAPSHOT: %s" % path_save_head
    
-    corpus_train = utils.load_corpus(path_corpus_train, vocab=None, max_length=MAX_LENGTH)
+    corpus_train = utils.load_corpus(path_corpus_train, vocab=path_corpus_train + ".dictionary", max_length=MAX_LENGTH)
     corpus_val = utils.load_corpus(path_corpus_val, vocab=corpus_train.vocab, max_length=MAX_LENGTH)
 
     if path_word2vec is not None:
