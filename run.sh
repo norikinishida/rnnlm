@@ -23,5 +23,5 @@ python scripts/train.py \
     --gpu 0 \
     --corpus_train $CORPUS_TRAIN \
     --corpus_val $CORPUS_VAL \
-    --config ./config/experiment_3.ini
+    --config ./config/template.ini
 

@@ -23,13 +23,11 @@ def evaluate(model, corpus):
     acc = 0.0
     count = 0
     vocab_size = model.vocab_size
-    for data_i in pyprind.prog_bar(xrange(len(corpus))):
-        # batch_sents = sents[data_i:data_i+1]
-        batch_sents = corpus.next_sample()
-        batch_sents = [batch_sents]
+    for s in pyprind.prog_bar(corpus):
+        batch_sents = [s]
         xs = utils.make_batch(batch_sents, train=train, tail=False)
 
-        ys = model.forward(ts=xs, train=train)
+        ys = model.forward(xs, train=train)
 
         ys = F.concat(ys, axis=0)
         ts = F.concat(xs, axis=0)
@@ -47,7 +45,7 @@ def evaluate(model, corpus):
         s = corpus.random_sample()
         xs = utils.make_batch([s], train=train, tail=False)
 
-        ys = model.forward(x_init=xs[0], train=train)
+        ys = model.generate(x_init=xs[0], train=train)
 
         words_ref = [corpus.ivocab[w] for w in s]
         words_gen = [words_ref[0]] + [corpus.ivocab[w[0]] for w in ys]
@@ -146,7 +144,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
             batch_sents = corpus_train.next_batch(size=batch_size)
             xs = utils.make_batch(batch_sents, train=True, tail=False)
 
-            ys = model.forward(ts=xs, train=True)
+            ys = model.forward(xs, train=True)
 
             ys = F.concat(ys, axis=0)
             ts = F.concat(xs, axis=0)

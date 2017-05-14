@@ -48,21 +48,7 @@ class LSTM(chainer.Chain):
         return U.astype(np.float32)
 
 
-    def forward(self, ts=None, x_init=None, train=False):
-        if ts is not None:
-            ys = self.forward_with_supervision(ts, train=train)
-        elif x_init is not None:
-            assert x_init.data.shape[0] == 1
-            ys = self.forward_without_supervision(x_init, train=train)
-        else:
-            print "Error: ts or x_init must not be None."
-            print "ts:" % ts
-            print "x_init:", x_init
-            return
-        return ys
-
-
-    def forward_with_supervision(self, ts, train=False):
+    def forward(self, ts, train):
         N = ts[0].data.shape[0]
 
         state = {
@@ -81,8 +67,9 @@ class LSTM(chainer.Chain):
         return ys
 
 
-    def forward_without_supervision(self, x_init, train=False):
+    def generate(self, x_init, train):
         N = x_init.data.shape[0]
+        assert N == 1
 
         state = {
             "h": Variable(cuda.cupy.zeros((N, self.state_dim), dtype=np.float32), volatile=not train),
