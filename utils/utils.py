@@ -60,7 +60,7 @@ def make_batch(x, train, tail=True):
         l = len(x[i])
         if l > max_length:
             max_length = l
-
+    
     y = np.zeros((N, max_length), dtype=np.int32)
 
     if tail:
@@ -73,7 +73,7 @@ def make_batch(x, train, tail=True):
             l = len(x[i])
             y[i, 0:l] = x[i]
             y[i, l:] = -1
-
+    
     y = [Variable(cuda.cupy.asarray(y[:,j]), volatile=not train)
             for j in xrange(y.shape[1])]
 
