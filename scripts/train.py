@@ -63,8 +63,7 @@ def evaluate(model, corpus):
 def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     MAX_EPOCH = 10000000
     MAX_PATIENCE = 20
-    # EVAL = 5000
-    EVAL = 100
+    EVAL = 5000
     MAX_LENGTH = 50
     
     config = utils.Config(path_config)
