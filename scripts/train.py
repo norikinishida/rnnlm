@@ -8,6 +8,7 @@ import math
 import os
 import sys
 
+import numpy as np
 import chainer
 from chainer import cuda, serializers, optimizers
 import chainer.functions as F
@@ -24,77 +25,80 @@ def evaluate(model, corpus):
     count = 0
     vocab_size = model.vocab_size
     for s in pyprind.prog_bar(corpus):
+        # data preparation
         batch_sents = [s]
         xs = utils.make_batch(batch_sents, train=train, tail=False)
-
+        # prediction
         ys = model.forward(xs, train=train)
-
+        # loss
         ys = F.concat(ys, axis=0)
         ts = F.concat(xs, axis=0)
         ys = F.reshape(ys, (-1, vocab_size))
         ts = F.reshape(ts, (-1,))
-
         loss += F.softmax_cross_entropy(ys, ts) * len(batch_sents[0])
         acc += F.accuracy(ys, ts, ignore_label=-1) * len(batch_sents[0])
         count += len(batch_sents[0])
-
-    loss_data = float(cuda.to_cpu(loss.data)) / count
-    acc_data = float(cuda.to_cpu(acc.data)) / count
+    loss = float(cuda.to_cpu(loss.data)) / count
+    acc = float(cuda.to_cpu(acc.data)) / count
     
     for i in xrange(5):
+        # data preparation
         s = corpus.random_sample()
         xs = utils.make_batch([s], train=train, tail=False)
-
+        # prediction (generation)
         ys = model.generate(x_init=xs[0], train=train)
-
+        # check
         words_ref = [corpus.ivocab[w] for w in s]
         words_gen = [words_ref[0]] + [corpus.ivocab[w[0]] for w in ys]
+        utils.logger.debug("[check] <Ref.> %s" %  " ".join(words_ref))
+        utils.logger.debug("[check] <Gen.> %s" %  " ".join(words_gen))
 
-        print "[check] <Ref.> %s" %  " ".join(words_ref)
-        print "[check] <Gen.> %s" %  " ".join(words_gen)
-
-    return loss_data, acc_data
-
+    return loss, acc
 
 def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
-    MAX_EPOCH = 50
+    MAX_EPOCH = 10000000
+    MAX_PATIENCE = 20
     EVAL = 5000
     MAX_LENGTH = 50
     
     config = utils.Config(path_config)
+    basename = os.path.join(
+                "rnnlm.%s.%s" % (
+                os.path.basename(path_corpus_train),
+                os.path.splitext(os.path.basename(path_config))[0]))
+    path_snapshot = os.path.join(config.getpath("snapshot"), basename + ".model")
+    path_snapshot_vectors = os.path.join(config.getpath("snapshot"), basename + ".vectors.txt")
+    path_log = os.path.join(config.getpath("log"), basename + ".log")
+    utils.set_logger(path_log)
+    utils.logger.debug("[info] TRAINING CORPUS: %s" % path_corpus_train)
+    utils.logger.debug("[info] VALIDATION CORPUS: %s" % path_corpus_val)
+    utils.logger.debug("[info] CONFIG: %s" % path_config)
+    utils.logger.debug("[info] PRE-TRAINED WORD EMBEDDINGS: %s" % path_word2vec)
+    utils.logger.debug("[info] SNAPSHOT: %s" % path_snapshot)
+    utils.logger.debug("[info] SNAPSHOT (WORD EMBEDDINGS): %s" % path_snapshot_vectors)
+    utils.logger.debug("[info] LOG: %s" % path_log)
+    # hyper parameters
     model_name = config.getstr("model")
     word_dim = config.getint("word_dim") 
     state_dim = config.getint("state_dim")
     grad_clip = config.getfloat("grad_clip")
     weight_decay = config.getfloat("weight_decay")
     batch_size = config.getint("batch_size")
-    
-    print "[info] TRAINING CORPUS: %s" % path_corpus_train
-    print "[info] VALIDATION CORPUS: %s" % path_corpus_val
-    print "[info] CONFIG: %s" % path_config
-    print "[info] PRE-TRAINED WORD EMBEDDINGS: %s" % path_word2vec
-    print "[info] MODEL: %s" % model_name
-    print "[info] WORD DIM: %d" % word_dim
-    print "[info] STATE DIM: %d" % state_dim
-    print "[info] GRADIENT CLIPPING: %f" % grad_clip
-    print "[info] WEIGHT DECAY: %f" % weight_decay
-    print "[info] BATCH SIZE: %d" % batch_size
-
-    path_save_head = os.path.join(config.getpath("snapshot"),
-            "rnnlm.%s.%s" % (
-                os.path.basename(path_corpus_train),
-                os.path.splitext(os.path.basename(path_config))[0]))
-    print "[info] SNAPSHOT: %s" % path_save_head
-   
+    utils.logger.debug("[info] MODEL: %s" % model_name)
+    utils.logger.debug("[info] WORD DIM: %d" % word_dim)
+    utils.logger.debug("[info] STATE DIM: %d" % state_dim)
+    utils.logger.debug("[info] GRADIENT CLIPPING: %f" % grad_clip)
+    utils.logger.debug("[info] WEIGHT DECAY: %f" % weight_decay)
+    utils.logger.debug("[info] BATCH SIZE: %d" % batch_size)
+    # data preparation 
     corpus_train = utils.load_corpus(path_corpus_train, vocab=path_corpus_train + ".dictionary", max_length=MAX_LENGTH)
     corpus_val = utils.load_corpus(path_corpus_val, vocab=corpus_train.vocab, max_length=MAX_LENGTH)
-
+    # model preparation
     if path_word2vec is not None:
         word2vec = utils.load_word2vec(path_word2vec, word_dim)
         initialW = utils.create_word_embeddings(corpus_train.vocab, word2vec, dim=word_dim, scale=0.001)
     else:
         initialW = None
-
     cuda.get_device(gpu).use()
     if model_name == "rnn":
         model = models.RNN(
@@ -118,21 +122,16 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
                 initialW=initialW,
                 EOS_ID=corpus_train.vocab["<EOS>"])
     else:
-        print "[error] Unknown model name: %s" % model_name
+        utils.logger.debug("[error] Unknown model name: %s" % model_name)
         sys.exit(-1)
     model.to_gpu(gpu)
-
+    # training & evaluation
     opt = optimizers.SMORMS3()
     opt.setup(model)
     opt.add_hook(chainer.optimizer.GradientClipping(grad_clip))
     opt.add_hook(chainer.optimizer.WeightDecay(weight_decay))
-
-    # print "[info] Evaluating on the validation sentences ..."
-    # loss_data, acc_data = evaluate(model, corpus_val)
-    # perp = math.exp(loss_data)
-    # print "[validation] iter=0, epoch=0, perplexity=%f, accuracy=%.2f%%" \
-    #     % (perp, acc_data*100)
-    
+    best_perp = np.inf
+    patience = 0
     it = 0
     n_train = len(corpus_train)
     vocab_size = model.vocab_size
@@ -140,57 +139,64 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
         for data_i in xrange(0, n_train, batch_size):
             if data_i + batch_size > n_train:
                 break
-            # batch_sents = sents_train[perm[data_i:data_i+batch_size]]
+            # data preparation
             batch_sents = corpus_train.next_batch(size=batch_size)
             xs = utils.make_batch(batch_sents, train=True, tail=False)
-
+            # prediction
             ys = model.forward(xs, train=True)
-
+            # loss
             ys = F.concat(ys, axis=0)
             ts = F.concat(xs, axis=0)
             ys = F.reshape(ys, (-1, vocab_size)) # (TN, |V|)
             ts = F.reshape(ts, (-1,)) # (TN,)
-
             loss = F.softmax_cross_entropy(ys, ts)
             acc = F.accuracy(ys, ts, ignore_label=-1)
-
+            # backward & update
             model.zerograds()
             loss.backward()
             loss.unchain_backward()
             opt.update()
             it += 1
-
-            loss_data = float(cuda.to_cpu(loss.data))
-            perp = math.exp(loss_data)
-            acc_data = float(cuda.to_cpu(acc.data))
-            print "[training] iter=%d, epoch=%d (%d/%d=%.03f%%), perplexity=%f, accuracy=%.2f%%" \
+            # log
+            loss = float(cuda.to_cpu(loss.data))
+            perp = math.exp(loss)
+            acc = float(cuda.to_cpu(acc.data))
+            utils.logger.debug("[training] iter=%d, epoch=%d (%d/%d=%.03f%%), perplexity=%f, accuracy=%.2f%%" \
                     % (it, epoch, data_i+batch_size, n_train,
                         float(data_i+batch_size)/n_train*100,
-                        perp, acc_data*100)
-
+                        perp, acc*100))
             if it % EVAL == 0:
-                print "[info] Evaluating on the validation sentences ..."
-                loss_data, acc_data = evaluate(model, corpus_val)
-                perp = math.exp(loss_data)
-                print "[validation] iter=%d, epoch=%d, perplexity=%f, accuracy=%.2f%%" \
-                        % (it, epoch, perp, acc_data*100)
+                # evaluation
+                utils.logger.debug("[info] Evaluating on the validation sentences ...")
+                loss, acc = evaluate(model, corpus_val)
+                perp = math.exp(loss)
+                utils.logger.debug("[validation] iter=%d, epoch=%d, perplexity=%f, accuracy=%.2f%%" \
+                        % (it, epoch, perp, acc*100))
+                if best_perp > perp:
+                    # save
+                    utils.logger.debug("[info] Best perplexity is updated: %f => %f" % (best_perp, perp))
+                    best_perp = perp
+                    patience = 0
+                    serializers.save_npz(path_snapshot, model)
+                    utils.save_word2vec(path_snapshot_vectors, utils.extract_word2vec(model, corpus_train.vocab))
+                    utils.logger.debug("[info] Saved.")
+                else:
+                    patience += 1
+                    utils.logger.debug("[info] Patience: %d (best perplexity: %f)" % (patience, best_perp))
+                    if patience >= MAX_PATIENCE:
+                        utils.logger.debug("[info] Patience %d is over. Training finished." % patience)
+                        break
 
-                serializers.save_npz(path_save_head + ".iter_%d.epoch_%d.model" % (it, epoch),
-                        model)
-                utils.save_word2vec(path_save_head + ".iter_%d.epoch_%d.vectors.txt" % (it, epoch),
-                        utils.extract_word2vec(model, corpus_train.vocab))
-                print "[info] Saved."
-
-    print "[info] Done."
+    utils.logger.debug("[info] Done.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gpu", help="gpu", type=int, default=0)
-    parser.add_argument("--corpus_train", help="path to training corpus", type=str, required=True)
-    parser.add_argument("--corpus_val", help="path to validation corpus", type=str, required=True)
-    parser.add_argument("--config", help="path to config", type=str, required=True)
-    parser.add_argument("--word2vec", help="path to pre-trained word vectors", type=str, default=None)
+    parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--corpus_train", type=str, required=True)
+    parser.add_argument("--corpus_val", type=str, required=True)
+    parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--word2vec", type=str, default=None)
     args = parser.parse_args()
 
     gpu = args.gpu
