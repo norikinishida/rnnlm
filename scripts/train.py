@@ -96,8 +96,14 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     utils.logger.debug("[info] WEIGHT DECAY: %f" % weight_decay)
     utils.logger.debug("[info] BATCH SIZE: %d" % batch_size)
     # data preparation 
-    corpus_train = utils.load_corpus(path_corpus_train, vocab=path_corpus_train + ".dictionary", max_length=MAX_LENGTH)
-    corpus_val = utils.load_corpus(path_corpus_val, vocab=corpus_train.vocab, max_length=MAX_LENGTH)
+    corpus_train = utils.load_corpus(
+            path_corpus_train,
+            vocab=path_corpus_train + ".dictionary",
+            max_length=MAX_LENGTH)
+    corpus_val = utils.load_corpus(
+            path_corpus_val,
+            vocab=corpus_train.vocab,
+            max_length=MAX_LENGTH)
     # model preparation
     if path_word2vec is not None:
         word2vec = utils.load_word2vec(path_word2vec, word_dim)
