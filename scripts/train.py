@@ -17,48 +17,54 @@ import pyprind
 import models
 import utils
 
+def forward(model, batch_sents, train):
+    # data preparation
+    xs = utils.make_batch(batch_sents, train=train, tail=False)
+    # prediction
+    ys = model.forward(xs, train=train)
+    # loss
+    ys = F.concat(ys, axis=0)
+    ts = F.concat(xs, axis=0)
+    ys = F.reshape(ys, (-1, model.vocab_size))
+    ts = F.reshape(ts, (-1,))
+    loss = F.softmax_cross_entropy(ys, ts)
+    acc = F.accuracy(ys, ts, ignore_label=-1)
+    return loss, acc
 
 def evaluate(model, corpus):
-    train = False
-    loss = 0.0
-    acc = 0.0
+    total_loss = 0.0
+    total_acc = 0.0
     count = 0
-    vocab_size = model.vocab_size
     for s in pyprind.prog_bar(corpus):
         # data preparation
         batch_sents = [s]
-        xs = utils.make_batch(batch_sents, train=train, tail=False)
-        # prediction
-        ys = model.forward(xs, train=train)
-        # loss
-        ys = F.concat(ys, axis=0)
-        ts = F.concat(xs, axis=0)
-        ys = F.reshape(ys, (-1, vocab_size))
-        ts = F.reshape(ts, (-1,))
-        loss += F.softmax_cross_entropy(ys, ts) * len(batch_sents[0])
-        acc += F.accuracy(ys, ts, ignore_label=-1) * len(batch_sents[0])
+        # forward
+        loss, acc = forward(model, batch_sents, train=False)
+        total_loss += loss * len(batch_sents[0])
+        total_acc += acc * len(batch_sents[0])
         count += len(batch_sents[0])
-    loss = float(cuda.to_cpu(loss.data)) / count
-    acc = float(cuda.to_cpu(acc.data)) / count
+    total_loss = float(cuda.to_cpu(total_loss.data)) / count
+    total_acc = float(cuda.to_cpu(total_acc.data)) / count
     
     for i in xrange(5):
         # data preparation
         s = corpus.random_sample()
-        xs = utils.make_batch([s], train=train, tail=False)
+        xs = utils.make_batch([s], train=False, tail=False)
         # prediction (generation)
-        ys = model.generate(x_init=xs[0], train=train)
+        ys = model.generate(x_init=xs[0], train=False)
         # check
         words_ref = [corpus.ivocab[w] for w in s]
         words_gen = [words_ref[0]] + [corpus.ivocab[w[0]] for w in ys]
         utils.logger.debug("[check] <Ref.> %s" %  " ".join(words_ref))
         utils.logger.debug("[check] <Gen.> %s" %  " ".join(words_gen))
 
-    return loss, acc
+    return total_loss, total_acc
 
 def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     MAX_EPOCH = 10000000
     MAX_PATIENCE = 20
-    EVAL = 5000
+    # EVAL = 5000
+    EVAL = 100
     MAX_LENGTH = 50
     
     config = utils.Config(path_config)
@@ -134,23 +140,14 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     patience = 0
     it = 0
     n_train = len(corpus_train)
-    vocab_size = model.vocab_size
     for epoch in xrange(1, MAX_EPOCH+1):
         for data_i in xrange(0, n_train, batch_size):
             if data_i + batch_size > n_train:
                 break
             # data preparation
             batch_sents = corpus_train.next_batch(size=batch_size)
-            xs = utils.make_batch(batch_sents, train=True, tail=False)
-            # prediction
-            ys = model.forward(xs, train=True)
-            # loss
-            ys = F.concat(ys, axis=0)
-            ts = F.concat(xs, axis=0)
-            ys = F.reshape(ys, (-1, vocab_size)) # (TN, |V|)
-            ts = F.reshape(ts, (-1,)) # (TN,)
-            loss = F.softmax_cross_entropy(ys, ts)
-            acc = F.accuracy(ys, ts, ignore_label=-1)
+            # forward
+            loss, acc = forward(model, batch_sents, train=True)
             # backward & update
             model.zerograds()
             loss.backward()
