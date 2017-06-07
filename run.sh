@@ -20,7 +20,7 @@ python scripts/preprocess.py \
 ##################################
 # training
 
-python scripts/train.py \
+python scripts/main.py \
     --gpu 0 \
     --corpus_train $CORPUS_TRAIN \
     --corpus_val $CORPUS_VAL \
