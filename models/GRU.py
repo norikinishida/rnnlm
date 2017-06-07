@@ -40,9 +40,9 @@ class GRU(chainer.Chain):
            
             W_out=L.Linear(self.state_dim, self.vocab_size),
         )
-        self.Uz.W.data = self.init_ortho(self.state_dim)
-        self.Ur.W.data = self.init_ortho(self.state_dim)
-        self.U.W.data = self.init_ortho(self.state_dim)
+        self.Uz_upd.W.data = self.init_ortho(self.state_dim)
+        self.Ur_upd.W.data = self.init_ortho(self.state_dim)
+        self.U_upd.W.data = self.init_ortho(self.state_dim)
 
 
     def init_ortho(self, dim):
