@@ -2,13 +2,17 @@
 
 from ConfigParser import SafeConfigParser
 import json
-
+import os
+import sys
 
 class Config(object):
     def __init__(self, path_config=None):
         self.parser = SafeConfigParser()
         self.parser.read("./config/path.ini")
         if path_config is not None:
+            if not os.path.exists(path_config):
+                print "Error!: path_config=%s does not exist." % path_config
+                sys.exit(-1)
             self.parser.read(path_config)
 
     def getpath(self, key):
