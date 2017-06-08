@@ -77,11 +77,7 @@ def create_word_embeddings(vocab, word2vec, dim, scale):
 
 def make_batch(x, train, tail=True):
     N = len(x)
-    max_length = -1
-    for i in xrange(N):
-        l = len(x[i])
-        if l > max_length:
-            max_length = l
+    max_length = max([len(x) for x in xs])
     
     y = np.zeros((N, max_length), dtype=np.int32)
 
