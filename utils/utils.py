@@ -75,27 +75,32 @@ def create_word_embeddings(vocab, word2vec, dim, scale):
         W[vocab[w], :] = word2vec[w]
     return W
 
-def make_batch(x, train, tail=True):
+def padding(x, head, with_mask):
     N = len(x)
     max_length = max([len(x) for x in xs])
-    
     y = np.zeros((N, max_length), dtype=np.int32)
-
-    if tail:
+    if head:
         for i in xrange(N):
-            l = len(x[i])
-            y[i, 0:max_length-l] = -1
-            y[i, max_length-l:] = x[i]
-    else:
-        for i in xrange(N):
-            l = len(x[i])
+            l = len(xs[i])
             y[i, 0:l] = x[i]
             y[i, l:] = -1
-    
-    y = [Variable(cuda.cupy.asarray(y[:,j]), volatile=not train)
-            for j in xrange(y.shape[1])]
+    else:
+        for i in xrange(N):
+            l = len(xs[i])
+            y[i, 0:max_length-l] = -1
+            y[i, max_length-l:] = x[i]
+    if with_mask:
+        m = np.greater(y, -1).astype(np.float32)
+        return y, m
+    else:
+        return y
 
-    return y
+def convert_ndarray_to_variable(x, seq, train):
+    if seq:
+        return [Variable(cuda.cupy.asarray(x[:,j]), volatile=not train)
+                    for j in xrange(x.shape[1])]
+    else:
+        return Variable(cuda.cupy.asarray(x), volatile=not train)
 
 def load_model(path_model, path_config, vocab):
     config = Config(path_config)

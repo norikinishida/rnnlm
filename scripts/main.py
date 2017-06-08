@@ -19,7 +19,8 @@ import utils
 
 def forward(model, batch_sents, train):
     # data preparation
-    xs = utils.make_batch(batch_sents, train=train, tail=False)
+    xs = utils.padding(batch_sents, head=True, with_mask=False)
+    xs = utils.convert_ndarray_to_variable(xs, seq=True, train=train)
     # prediction
     ys = model.forward(xs, train=train)
     # loss
@@ -49,7 +50,8 @@ def evaluate(model, corpus):
     for i in xrange(5):
         # data preparation
         s = corpus.random_sample()
-        xs = utils.make_batch([s], train=False, tail=False)
+        xs = utils.padding([s], head=True, with_mask=False)
+        xs = utils.convert_ndarray_to_variable(xs, seq=True, train=False)
         # prediction (generation)
         ys = model.generate(x_init=xs[0], train=False)
         # check
