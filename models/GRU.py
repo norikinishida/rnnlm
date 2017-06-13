@@ -13,7 +13,6 @@ class GRU(chainer.Chain):
         self.vocab_size = vocab_size
         self.word_dim = word_dim
         self.state_dim = state_dim
-        # self.initialW = initialW
         self.EOS_ID = EOS_ID
         
         if initialW is not None:
@@ -44,12 +43,10 @@ class GRU(chainer.Chain):
         self.Ur_upd.W.data = self.init_ortho(self.state_dim)
         self.U_upd.W.data = self.init_ortho(self.state_dim)
 
-
     def init_ortho(self, dim):
         A = np.random.randn(dim, dim)
         U, S, V = np.linalg.svd(A)
         return U.astype(np.float32)
-
 
     def forward(self, ts, train):
         N = ts[0].data.shape[0]
@@ -65,7 +62,6 @@ class GRU(chainer.Chain):
             ys.append(y)
 
         return ys
-
 
     def generate(self, x_init, train):
         N = x_init.data.shape[0]
@@ -94,7 +90,6 @@ class GRU(chainer.Chain):
 
         return ys
 
-
     def update_state(self, x, s, train):
         v = self.embed(x)
         z = F.sigmoid(self.Wz_upd(v) + self.Uz_upd(s))
@@ -102,6 +97,5 @@ class GRU(chainer.Chain):
         _s = F.tanh(self.W_upd(v) + self.U_upd(r * s))
         return (1.0 - z) * s + z * _s
 
-    
     def predict(self, s, train):
         return self.W_out(s)

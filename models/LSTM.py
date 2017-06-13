@@ -13,7 +13,6 @@ class LSTM(chainer.Chain):
         self.vocab_size = vocab_size
         self.word_dim = word_dim
         self.state_dim = state_dim
-        # self.initialW = initialW
         self.EOS_ID = EOS_ID
         
         if initialW is not None:
@@ -41,12 +40,10 @@ class LSTM(chainer.Chain):
         self.U_upd.W.data[self.state_dim*2:self.state_dim*3, :] = self.init_ortho(self.state_dim)
         self.U_upd.W.data[self.state_dim*3:self.state_dim*4, :] = self.init_ortho(self.state_dim)
 
-
     def init_ortho(self, dim):
         A = np.random.randn(dim, dim)
         U, S, V = np.linalg.svd(A)
         return U.astype(np.float32)
-
 
     def forward(self, ts, train):
         N = ts[0].data.shape[0]
@@ -65,7 +62,6 @@ class LSTM(chainer.Chain):
             ys.append(y)
 
         return ys
-
 
     def generate(self, x_init, train):
         N = x_init.data.shape[0]
@@ -97,14 +93,12 @@ class LSTM(chainer.Chain):
 
         return ys
 
-
     def update_state(self, x, state, train):
         v = self.embed(x)
         h_in = self.W_upd(v) + self.U_upd(state["h"])
         c, h = F.lstm(state["c"], h_in)
         state = {"h": h, "c": c}
         return state
-
     
     def predict(self, s, train):
         return self.W_out(s)

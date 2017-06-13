@@ -39,12 +39,10 @@ class RNN(chainer.Chain):
         )
         self.U_upd.W.data = self.init_ortho(self.state_dim)
 
-
     def init_ortho(self, dim):
         A = np.random.randn(dim, dim)
         U, S, V = np.linalg.svd(A)
         return U.astype(np.float32)
-
 
     def forward(self, ts, train):
         N = ts[0].data.shape[0]
@@ -60,7 +58,6 @@ class RNN(chainer.Chain):
             ys.append(y)
 
         return ys
-
 
     def generate(self, x_init, train):
         N = x_init.data.shape[0]
@@ -89,11 +86,9 @@ class RNN(chainer.Chain):
 
         return ys
 
-
     def update_state(self, x, s, train):
         v = self.embed(x)
         return F.tanh(self.W_upd(v) + self.U_upd(s))
 
-    
     def predict(self, s, train):
         return self.W_out(s)

@@ -61,7 +61,7 @@ def load_word2vec(path, dim):
             word2vec[l[0].decode("utf-8")] = np.asarray([float(x) for x in l[1:]])
     return word2vec
 
-def create_word_embeddings(vocab, word2vec, dim, scale):
+def convert_word2vec_to_weight_matrix(vocab, word2vec, dim, scale):
     task_vocab = vocab.keys()
     logger.debug("[info] Vocabulary size (corpus): %d" % len(task_vocab))
     word2vec_vocab = word2vec.keys()
@@ -75,32 +75,37 @@ def create_word_embeddings(vocab, word2vec, dim, scale):
         W[vocab[w], :] = word2vec[w]
     return W
 
-def padding(x, head, with_mask):
-    N = len(x)
+def load_word2vec_weight_matrix(path, dim, vocab, scale):
+    word2vec = load_word2vec(path, dim=dim)
+    W = convert_word2vec_to_weight_matrix(vocab, word2vec, dim=dim, scale=scale)
+    return W
+
+def padding(xs, head, with_mask):
+    N = len(xs)
     max_length = max([len(x) for x in xs])
-    y = np.zeros((N, max_length), dtype=np.int32)
+    ys = np.zeros((N, max_length), dtype=np.int32)
     if head:
         for i in xrange(N):
             l = len(xs[i])
-            y[i, 0:l] = x[i]
-            y[i, l:] = -1
+            ys[i, 0:l] = xs[i]
+            ys[i, l:] = -1
     else:
         for i in xrange(N):
             l = len(xs[i])
-            y[i, 0:max_length-l] = -1
-            y[i, max_length-l:] = x[i]
+            ys[i, 0:max_length-l] = -1
+            ys[i, max_length-l:] = xs[i]
     if with_mask:
-        m = np.greater(y, -1).astype(np.float32)
-        return y, m
+        ms = np.greater(ys, -1).astype(np.float32)
+        return ys, ms
     else:
-        return y
+        return ys
 
-def convert_ndarray_to_variable(x, seq, train):
+def convert_ndarray_to_variable(xs, seq, train):
     if seq:
-        return [Variable(cuda.cupy.asarray(x[:,j]), volatile=not train)
-                    for j in xrange(x.shape[1])]
+        return [Variable(cuda.cupy.asarray(xs[:,j]), volatile=not train)
+                    for j in xrange(xs.shape[1])]
     else:
-        return Variable(cuda.cupy.asarray(x), volatile=not train)
+        return Variable(cuda.cupy.asarray(xs), volatile=not train)
 
 def load_model(path_model, path_config, vocab):
     config = Config(path_config)

@@ -108,8 +108,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
             max_length=MAX_LENGTH)
     # model preparation
     if path_word2vec is not None:
-        word2vec = utils.load_word2vec(path_word2vec, word_dim)
-        initialW = utils.create_word_embeddings(corpus_train.vocab, word2vec, dim=word_dim, scale=0.001)
+        initialW = utils.load_word2vec_weight_matrix(path_word2vec, word_dim, corpus_train.vocab, scale=0.001)
     else:
         initialW = None
     cuda.get_device(gpu).use()
