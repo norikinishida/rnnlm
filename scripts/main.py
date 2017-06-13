@@ -146,7 +146,10 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     patience = 0
     it = 0
     n_train = len(corpus_train)
+    finish_training = False
     for epoch in xrange(1, MAX_EPOCH+1):
+        if finish_training:
+            break
         for data_i in xrange(0, n_train, batch_size):
             if data_i + batch_size > n_train:
                 break
@@ -188,7 +191,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
                     utils.logger.debug("[info] Patience: %d (best perplexity: %f)" % (patience, best_perp))
                     if patience >= MAX_PATIENCE:
                         utils.logger.debug("[info] Patience %d is over. Training finished." % patience)
-                        break
+                        finish_training = True
 
     utils.logger.debug("[info] Done.")
 
