@@ -192,6 +192,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
                     if patience >= MAX_PATIENCE:
                         utils.logger.debug("[info] Patience %d is over. Training finished." % patience)
                         finish_training = True
+                        break
 
     utils.logger.debug("[info] Done.")
 
