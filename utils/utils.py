@@ -14,7 +14,7 @@ from Config import Config
 import corpus_wrapper
 
 ###############################
-# global
+# logging
 
 logger = getLogger("logger")
 logger.setLevel(DEBUG)
@@ -23,9 +23,6 @@ handler = StreamHandler()
 handler.setLevel(DEBUG)
 handler.setFormatter(Formatter(fmt="%(message)s"))
 logger.addHandler(handler)
-
-###############################
-# functions 
 
 def set_logger(filename):
     if os.path.exists(filename):
@@ -36,18 +33,8 @@ def set_logger(filename):
             sys.exit(0)
     logging.basicConfig(level=DEBUG, format="%(message)s", filename=filename, filemode="w")
 
-def load_corpus(path_corpus, vocab, max_length):
-    start_time = time.time()
-
-    corpus = corpus_wrapper.CorpusWrapper(path_corpus, vocab=vocab, max_length=max_length)
-    logger.debug("[info] Vocabulary size: %d" % len(corpus.vocab))
-
-    logger.debug("[info] Checking '<EOS>' tokens ...")
-    for s in corpus:
-        assert s[-1] == corpus.vocab["<EOS>"]
-
-    logger.debug("[info] Completed. %d [sec]" % (time.time() - start_time))
-    return corpus
+###############################
+# word2vec 
 
 def load_word2vec(path, dim):
     word2vec = {}
@@ -80,6 +67,9 @@ def load_word2vec_weight_matrix(path, dim, vocab, scale):
     W = convert_word2vec_to_weight_matrix(vocab, word2vec, dim=dim, scale=scale)
     return W
 
+###############################
+# batch
+
 def padding(xs, head, with_mask):
     N = len(xs)
     max_length = max([len(x) for x in xs])
@@ -106,6 +96,9 @@ def convert_ndarray_to_variable(xs, seq, train):
                     for j in xrange(xs.shape[1])]
     else:
         return Variable(cuda.cupy.asarray(xs), volatile=not train)
+
+###############################
+# loading & saving
 
 def load_model(path_model, path_config, vocab):
     config = Config(path_config)
@@ -151,4 +144,21 @@ def save_word2vec(path, word2vec):
         for w, v in word2vec.items():
             line = " ".join([w] + [str(v_i) for v_i in v]).encode("utf-8") + "\n"
             f.write(line)
+
+###############################
+# corpus
+
+def load_corpus(path_corpus, vocab, max_length):
+    start_time = time.time()
+
+    corpus = corpus_wrapper.CorpusWrapper(path_corpus, vocab=vocab, max_length=max_length)
+    logger.debug("[info] Vocabulary size: %d" % len(corpus.vocab))
+
+    logger.debug("[info] Checking '<EOS>' tokens ...")
+    for s in corpus:
+        assert s[-1] == corpus.vocab["<EOS>"]
+
+    logger.debug("[info] Completed. %d [sec]" % (time.time() - start_time))
+    return corpus
+
 
