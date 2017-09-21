@@ -147,8 +147,16 @@ def extract_word2vec(model, vocab):
     return word2vec
 
 def save_word2vec(path, word2vec):
+    eps = 1e-6
+    def normalize(v):
+        return v / (np.linalg.norm(v) + eps)
     with open(path, "w") as f:
         for w, v in word2vec.items():
             line = " ".join([w] + [str(v_i) for v_i in v]).encode("utf-8") + "\n"
+            f.write(line)
+    with open(path + ".normalized", "w") as f:
+        for w, v in word2vec.items():
+            v_normalized = normalize(v)
+            line = " ".join([w] + [str(v_i) for v_i in v_normalized]).encode("utf-8") + "\n"
             f.write(line)
 
