@@ -17,6 +17,7 @@ import pyprind
 import models
 import utils
 
+
 def forward(model, batch_sents, train):
     # data preparation
     xs = utils.padding(batch_sents, head=True, with_mask=False)
@@ -62,13 +63,21 @@ def evaluate(model, corpus):
 
     return total_loss, total_acc
 
-def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
+def main(args):
+    gpu = args.gpu
+    path_corpus_train = args.corpus_train
+    path_corpus_val = args.corpus_val
+    path_config = args.config
+    path_word2vec = args.word2vec
+
     MAX_EPOCH = 10000000
     MAX_PATIENCE = 20
     EVAL = 5000
     MAX_LENGTH = 50
     
     config = utils.Config(path_config)
+
+    # paths
     basename = os.path.join(
                 "rnnlm.%s.%s" % (
                 os.path.basename(path_corpus_train),
@@ -84,6 +93,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     utils.logger.debug("[info] SNAPSHOT: %s" % path_snapshot)
     utils.logger.debug("[info] SNAPSHOT (WORD EMBEDDINGS): %s" % path_snapshot_vectors)
     utils.logger.debug("[info] LOG: %s" % path_log)
+
     # hyper parameters
     model_name = config.getstr("model")
     word_dim = config.getint("word_dim") 
@@ -97,6 +107,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     utils.logger.debug("[info] GRADIENT CLIPPING: %f" % grad_clip)
     utils.logger.debug("[info] WEIGHT DECAY: %f" % weight_decay)
     utils.logger.debug("[info] BATCH SIZE: %d" % batch_size)
+
     # data preparation 
     corpus_train = utils.load_corpus(
             path_corpus_train,
@@ -106,6 +117,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
             path_corpus_val,
             vocab=corpus_train.vocab,
             max_length=MAX_LENGTH)
+
     # model preparation
     if path_word2vec is not None:
         initialW = utils.load_word2vec_weight_matrix(path_word2vec, word_dim, corpus_train.vocab, scale=0.001)
@@ -137,7 +149,8 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
         utils.logger.debug("[error] Unknown model name: %s" % model_name)
         sys.exit(-1)
     model.to_gpu(gpu)
-    # training & evaluation
+
+    # training & validation
     opt = optimizers.SMORMS3()
     opt.setup(model)
     opt.add_hook(chainer.optimizer.GradientClipping(grad_clip))
@@ -150,6 +163,7 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
     for epoch in xrange(1, MAX_EPOCH+1):
         if finish_training:
             break
+        # training
         for data_i in xrange(0, n_train, batch_size):
             if data_i + batch_size > n_train:
                 break
@@ -171,15 +185,15 @@ def main(gpu, path_corpus_train, path_corpus_val, path_config, path_word2vec):
                     % (it, epoch, data_i+batch_size, n_train,
                         float(data_i+batch_size)/n_train*100,
                         perp, acc*100))
+            # validation
             if it % EVAL == 0:
-                # evaluation
                 utils.logger.debug("[info] Evaluating on the validation sentences ...")
                 loss, acc = evaluate(model, corpus_val)
                 perp = math.exp(loss)
                 utils.logger.debug("[validation] iter=%d, epoch=%d, perplexity=%f, accuracy=%.2f%%" \
                         % (it, epoch, perp, acc*100))
+                # save
                 if best_perp > perp:
-                    # save
                     utils.logger.debug("[info] Best perplexity is updated: %f => %f" % (best_perp, perp))
                     best_perp = perp
                     patience = 0
@@ -205,17 +219,4 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--word2vec", type=str, default=None)
     args = parser.parse_args()
-
-    gpu = args.gpu
-    path_corpus_train = args.corpus_train
-    path_corpus_val = args.corpus_val
-    path_config = args.config
-    path_word2vec = args.word2vec
-
-    main(
-        gpu=gpu,
-        path_corpus_train=path_corpus_train,
-        path_corpus_val=path_corpus_val,
-        path_config=path_config,
-        path_word2vec=path_word2vec)
-
+    main(args)
