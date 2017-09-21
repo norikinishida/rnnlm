@@ -156,15 +156,16 @@ def save_word2vec(path, word2vec):
 ###############################
 # corpus
 
-def load_corpus(path_corpus, vocab, max_length):
+def load_corpus(path_corpus, vocab, max_length, check_eos=True):
     start_time = time.time()
 
     corpus = corpus_wrapper.CorpusWrapper(path_corpus, vocab=vocab, max_length=max_length)
     logger.debug("[info] Vocabulary size: %d" % len(corpus.vocab))
-
-    logger.debug("[info] Checking '<EOS>' tokens ...")
-    for s in corpus:
-        assert s[-1] == corpus.vocab["<EOS>"]
+    
+    if check_eos:
+        logger.debug("[info] Checking '<EOS>' tokens ...")
+        for s in corpus:
+            assert s[-1] == corpus.vocab["<EOS>"]
 
     logger.debug("[info] Completed. %d [sec]" % (time.time() - start_time))
     return corpus

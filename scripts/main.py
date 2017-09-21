@@ -72,8 +72,8 @@ def main(args):
 
     MAX_EPOCH = 10000000
     MAX_PATIENCE = 20
-    EVAL = 5000
-    MAX_LENGTH = 50
+    EVAL = 10000
+    MAX_LENGTH = 30
     
     config = utils.Config(path_config)
 
@@ -112,11 +112,13 @@ def main(args):
     corpus_train = utils.load_corpus(
             path_corpus_train,
             vocab=path_corpus_train + ".dictionary",
-            max_length=MAX_LENGTH)
+            max_length=MAX_LENGTH,
+            check_eos=False)
     corpus_val = utils.load_corpus(
             path_corpus_val,
             vocab=corpus_train.vocab,
-            max_length=MAX_LENGTH)
+            max_length=MAX_LENGTH,
+            check_eos=False)
 
     # model preparation
     if path_word2vec is not None:
