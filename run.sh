@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
 
 RAW=/mnt/hdd/dataset/Book-Corpus/books_large.merge.head_50000.txt
-CORPUS_TRAIN=/mnt/hdd/projects/rnnlm/data/corpora/bookcorpus/books_large.merge.head_50000.txt.preprocessed.train
-CORPUS_VAL=/mnt/hdd/projects/rnnlm/data/corpora/bookcorpus/books_large.merge.head_50000.txt.preprocessed.val
+CORPUS_TRAIN=/mnt/hdd/projects/RNNLM/data/corpora/bookcorpus/books_large.merge.head_50000.txt.preprocessed.train
+CORPUS_VAL=/mnt/hdd/projects/RNNLM/data/corpora/bookcorpus/books_large.merge.head_50000.txt.preprocessed.val
 
 # RAW=/mnt/hdd/dataset/Wikipedia/english/corpora/enwiki-latest-pages-articles.xml.corpus
-# CORPUS_TRAIN=/mnt/hdd/projects/rnnlm/data/corpora/wikipedia/enwiki-latest-pages-articles.xml.corpus.preprocessed.train
-# CORPUS_VAL=/mnt/hdd/projects/rnnlm/data/corpora/wikipedia/enwiki-latest-pages-articles.xml.corpus.preprocessed.val
+# CORPUS_TRAIN=/mnt/hdd/projects/RNNLM/data/corpora/wikipedia/enwiki-latest-pages-articles.xml.corpus.preprocessed.train
+# CORPUS_VAL=/mnt/hdd/projects/RNNLM/data/corpora/wikipedia/enwiki-latest-pages-articles.xml.corpus.preprocessed.val
 
 
 ##################################
