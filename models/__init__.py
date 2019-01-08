@@ -1,3 +1,2 @@
-from RNN import RNN
-from LSTM import LSTM
-from GRU import GRU
+from .rnnlm import RNNLM
+from .lstmlm import LSTMLM
