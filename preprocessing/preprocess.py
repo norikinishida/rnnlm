@@ -12,17 +12,17 @@ def main(args):
     path_dev = args.dev
     path_vocab = args.vocab
 
-    # textpreprocessor.replace_digits.run(
-    #         path_tokenized,
-    #         path_tokenized + ".replace_digits")
-    # textpreprocessor.append_eos.run(
-    #         path_tokenized + ".replace_digits",
-    #         path_tokenized + ".replace_digits.append_eos")
-    # textpreprocessor.split_corpus.run(
-    #         path_tokenized + ".replace_digits.append_eos",
-    #         path_tokenized + ".replace_digits.append_eos.train",
-    #         path_tokenized + ".replace_digits.append_eos.dev",
-    #         size=5000)
+    textpreprocessor.replace_digits.run(
+            path_tokenized,
+            path_tokenized + ".replace_digits")
+    textpreprocessor.append_eos.run(
+            path_tokenized + ".replace_digits",
+            path_tokenized + ".replace_digits.append_eos")
+    textpreprocessor.split_corpus.run(
+            path_tokenized + ".replace_digits.append_eos",
+            path_tokenized + ".replace_digits.append_eos.train",
+            path_tokenized + ".replace_digits.append_eos.dev",
+            size=5000)
 
     textpreprocessor.create_vocabulary.run(
             path_tokenized + ".replace_digits.append_eos.train",

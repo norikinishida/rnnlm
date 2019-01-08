@@ -6,5 +6,5 @@ def read_corpus(path):
     :rtype: DataPool
     """
     datapool = utils.DataPool(paths=[path], processes=[lambda l: l.split()])
-    utils.writelog("dataloader.read_corpus", "# of instances=%d" % len(datapool))
+    utils.writelog("dataloader.read_corpus", "# of sentences=%d" % len(datapool))
     return datapool
